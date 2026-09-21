@@ -106,12 +106,27 @@ import { renderFrame, ensureFonts, LAYOUTS } from './src/render.js';
 import { toPngBlob } from './src/export.js';
 import { makeZip } from './src/zip.js';
 import { save, load, clear, debounce } from './src/store.js';
+import { runOnboarding } from './src/onboarding.js';
 
 const $ = (id) => document.getElementById(id);
 const status = (t) => { $('status').textContent = t; };
 
-let deck = load() || makeDeck(structuredClone(DEFAULT_BRAND));
+let deck = load();
 let active = 0;
+
+/** Build a deck from onboarding answers; null answers = blank deck. */
+function deckFrom(answers) {
+  const brand = structuredClone(DEFAULT_BRAND);
+  if (answers) {
+    if (answers.brandName) brand.name = answers.brandName.toUpperCase();
+    if (answers.preset) Object.assign(brand, (({ label, ...c }) => c)(PRESETS[answers.preset] || {}));
+    if (answers.brandName) {
+      const slug = answers.brandName.replace(/[^\p{L}\p{N}]+/gu, '').toUpperCase();
+      if (slug) brand.tag = `#${slug}`;
+    }
+  }
+  return makeDeck(brand, 'carousel', 10, answers);
+}
 
 const persist = debounce(() => { if (!save(deck)) status('Autosave unavailable in this browser.'); });
 
@@ -184,10 +199,10 @@ $('delFrame').onclick = () => {
   syncFields(); render();
 };
 
-$('reset').onclick = () => {
+$('reset').onclick = async () => {
   if (!confirm('Discard this deck and start over?')) return;
   clear();
-  deck = makeDeck(structuredClone(DEFAULT_BRAND));
+  deck = deckFrom(await runOnboarding());
   active = 0; syncFields(); render(); status('Started a new deck.');
 };
 
@@ -226,6 +241,8 @@ function save2(blob, filename) {
 }
 
 await ensureFonts();
+// First run only: a returning user with a saved deck goes straight to work.
+if (!deck) deck = deckFrom(await runOnboarding());
 syncFields();
 render();
 

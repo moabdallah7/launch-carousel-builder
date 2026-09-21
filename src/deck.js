@@ -23,9 +23,31 @@ const STARTER = [
   ['DO THE THING',                'One instruction. One way to reach you.'],
 ];
 
-export function makeDeck(brand, sizeKey = 'carousel', count = 10) {
+// Seeded copy: the user's own subject in the frames that can carry it, and
+// prompts everywhere else. Writing all ten for them produces filler they have
+// to delete; writing none leaves a blank page. This splits the difference.
+function starterFor(seed) {
+  const subject = (seed?.subject || '').trim();
+  const brand = (seed?.brandName || '').trim();
+  if (!subject && !brand) return STARTER;
+
+  // The name belongs in a headline; the description belongs in body copy.
+  // "TRY A SPECIALTY COFFEE SHOP." is what happens when you mix them up.
+  const NAME = (brand || subject).toUpperCase();
+  const sentence = subject
+    ? subject.charAt(0).toUpperCase() + subject.slice(1) + (/[.!?]$/.test(subject) ? '' : '.')
+    : 'Say the one thing that separates you. Short beats clever.';
+
+  const copy = STARTER.map((row) => [...row]);
+  copy[0] = [`INTRODUCING\n${NAME}.`, sentence];
+  copy[copy.length - 1] = [`TRY\n${NAME}.`, 'One instruction. One way to reach you.'];
+  return copy;
+}
+
+export function makeDeck(brand, sizeKey = 'carousel', count = 10, seed = null) {
   const { w, h } = SIZES[sizeKey];
   const n = Math.max(1, Math.min(20, count));
+  const starter = starterFor(seed);
   return {
     v: SCHEMA_VERSION,
     id: 'launch-carousel',
@@ -34,7 +56,7 @@ export function makeDeck(brand, sizeKey = 'carousel', count = 10) {
     layout: 'statement',
     brand,
     frames: Array.from({ length: n }, (_, i) => {
-      const [headline, body] = STARTER[i % STARTER.length];
+      const [headline, body] = starter[i % starter.length];
       return {
         id: `frame-${String(i + 1).padStart(2, '0')}`,
         w, h,

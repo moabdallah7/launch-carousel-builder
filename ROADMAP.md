@@ -39,6 +39,9 @@ These are decisions already paid for. Changing one is a rewrite, not a tweak.
 - Autosave to `localStorage`, guarded against private-mode failures
 - **RTL / Arabic**: script detection, Arabic face embedded, mirrored chrome,
   direction-aware anchoring, tracking zeroed to preserve letter joining
+- **Onboarding** (A1): two questions on first run, seeded deck, skippable,
+  never shown again once a deck is saved
+- Fonts generated at build time; all faces OFL-1.1 with licences bundled
 
 **Verified**
 
@@ -54,7 +57,6 @@ Goal: a stranger gets a good carousel without being taught.
 
 | # | Item | Why |
 |---|---|---|
-| A1 | **Onboarding screen** | It currently opens into a dense control panel. Ask what they're launching, generate a starter deck, then reveal controls. |
 | A2 | **Logo upload** | Brand is colours and text only. Client-side file read to a data URI — no upload. |
 | A3 | **Per-frame layout** | Layout is deck-wide. Real carousels vary frame to frame. |
 | A4 | **Character-count feedback** | Warn before truncation, don't just show `…` after the fact. |
