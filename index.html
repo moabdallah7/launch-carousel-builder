@@ -71,8 +71,12 @@
     </fieldset>
 
     <fieldset>
-      <legend>Layout &amp; size</legend>
+      <legend>Layout <span style="color:#5a5a5a;text-transform:none;letter-spacing:0">· this frame</span></legend>
       <div class="chips" id="layouts"></div>
+      <div class="row" style="margin-top:9px">
+        <button class="ghost" id="applyAll" style="margin-top:0">Apply to all</button>
+        <button class="ghost" id="reshuffle" style="margin-top:0">Vary again</button>
+      </div>
       <label>Size</label>
       <select id="size"></select>
     </fieldset>
@@ -102,7 +106,7 @@
 <script type="module">
 import { DEFAULT_BRAND, PRESETS, applyPreset } from './src/brand.js';
 import { makeDeck, resizeDeck, addFrame, removeFrame, SIZES } from './src/deck.js';
-import { renderFrame, ensureFonts, LAYOUTS } from './src/render.js';
+import { renderFrame, ensureFonts, LAYOUTS, rhythmFor } from './src/render.js';
 import { toPngBlob } from './src/export.js';
 import { makeZip } from './src/zip.js';
 import { save, load, clear, debounce } from './src/store.js';
@@ -145,8 +149,9 @@ function render() {
     b.onclick = () => { active = i; syncFields(); render(); };
     $('strip').appendChild(b);
   });
+  const activeLayout = deck.frames[active].layout || deck.layout;
   document.querySelectorAll('#layouts .chip')
-    .forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.k === deck.layout)));
+    .forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.k === activeLayout)));
   persist();
 }
 
@@ -182,10 +187,21 @@ $('presets').onclick = (e) => {
 };
 
 $('layouts').innerHTML = Object.entries(LAYOUTS)
-  .map(([k, label]) => `<button class="chip" data-k="${k}">${label}</button>`).join('');
+  .map(([k, L]) => `<button class="chip" data-k="${k}">${L.label}</button>`).join('');
+// Layout is per-frame: a deck where every frame uses one layout is exactly the
+// "all the same vibe" problem. Deck-wide is available, but opt-in.
 $('layouts').onclick = (e) => {
-  const k = e.target.dataset?.k; if (!k) return;
-  deck.layout = k; render();
+  const btn = e.target.closest('.chip'); if (!btn) return;
+  deck.frames[active].layout = btn.dataset.k; render();
+};
+$('applyAll').onclick = () => {
+  const k = deck.frames[active].layout;
+  deck.frames.forEach((f) => { f.layout = k; });
+  render(); status('Applied that layout to every frame.');
+};
+$('reshuffle').onclick = () => {
+  deck.frames.forEach((f, i) => { f.layout = rhythmFor(i); });
+  render(); status('Rhythm restored — loud, quiet, loud.');
 };
 
 $('size').innerHTML = Object.entries(SIZES)

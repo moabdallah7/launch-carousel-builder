@@ -3,36 +3,42 @@
 
 import { FONT_CSS } from './fonts.js';
 import { contrastInk } from './brand.js';
+import { LAYOUTS } from './layouts.js';
+
+export { LAYOUTS, layoutOf, CHROME, rhythmFor } from './layouts.js';
 
 const esc = (s) => String(s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // ---------------------------------------------------------------- direction
 
-// Arabic, Hebrew, Syriac, Thaana + Arabic presentation forms.
 const RTL_RE = /[֐-׿؀-ۿ܀-ݏހ-޿ࢠ-ࣿיִ-﷿ﹰ-﻿]/;
 export const isRTL = (s) => RTL_RE.test(String(s ?? ''));
 
-// Latin faces carry no Arabic glyphs, so RTL text must switch family or it
-// renders as fallback on screen and as tofu in the exported PNG.
+// Latin faces carry no Arabic glyphs, so RTL must switch family or it renders
+// as fallback on screen and tofu in the export.
 const ARABIC_FAMILY = 'IBM Plex Sans Arabic';
 
-/** @returns {{family:string, weight:number, tracking:number, rtl:boolean}} */
-export function faceFor(text, brand, role, tracking = 0) {
-  const rtl = isRTL(text);
-  if (rtl) {
-    // Negative tracking breaks Arabic letter joining - always zero it.
-    return { family: ARABIC_FAMILY, weight: role === 'display' ? 700 : 400, tracking: 0, rtl };
+const VOICE = {
+  display: (b) => ({ family: b.display, weight: 900 }),
+  serif:   ()  => ({ family: 'Instrument Serif', weight: 400 }),
+  body:    (b) => ({ family: b.body, weight: 400 }),
+  mono:    (b) => ({ family: b.mono, weight: 600 }),
+};
+
+/** Resolve a typeface for a run of text. Script wins over style. */
+export function faceFor(text, brand, voice, tracking = 0) {
+  if (isRTL(text)) {
+    // Negative tracking severs Arabic letter joining - always zero it.
+    // There is no Arabic serif here, so serif requests fall back to Arabic sans.
+    return { family: ARABIC_FAMILY, weight: voice === 'display' ? 700 : 400,
+             tracking: 0, rtl: true };
   }
-  if (role === 'display') return { family: brand.display, weight: 900, tracking, rtl };
-  if (role === 'mono')    return { family: brand.mono,    weight: 600, tracking, rtl };
-  return { family: brand.body, weight: 400, tracking, rtl };
+  return { ...(VOICE[voice] || VOICE.display)(brand), tracking, rtl: false };
 }
 
 // ---------------------------------------------------------------- fonts
 
-// The SVG embeds FONT_CSS for export; the document needs the same faces or
-// measureText silently measures a fallback and every width comes out wrong.
 let _fontsReady = null;
 export function ensureFonts() {
   if (_fontsReady) return _fontsReady;
@@ -43,8 +49,9 @@ export function ensureFonts() {
     document.fonts.load("900 132px 'Archivo'"),
     document.fonts.load("600 26px 'Martian Mono'"),
     document.fonts.load("400 30px 'IBM Plex Sans'"),
-    document.fonts.load(`700 132px '${ARABIC_FAMILY}'`),
-    document.fonts.load(`400 30px '${ARABIC_FAMILY}'`),
+    document.fonts.load("400 124px 'Instrument Serif'"),
+    document.fonts.load("700 132px '" + ARABIC_FAMILY + "'"),
+    document.fonts.load("400 30px '" + ARABIC_FAMILY + "'"),
   ]).then(() => document.fonts.ready);
   return _fontsReady;
 }
@@ -64,7 +71,6 @@ export function measureText(text, { family, weight = 400, size, tracking = 0 }) 
 
 // ---------------------------------------------------------------- text
 
-/** Greedy wrap by measured width. Honours newlines the user typed. */
 export function wrap(text, maxW, font) {
   const out = [];
   for (const para of String(text).split('\n')) {
@@ -80,146 +86,137 @@ export function wrap(text, maxW, font) {
   return out;
 }
 
-/** Step size down until the longest line fits. Never guesses. */
 function fitSize(rows, maxW, font, start, min) {
   let size = start;
   while (size > min) {
     const t = font.tracking * (size / start);
-    const widest = Math.max(...rows.map((r) => measureText(r, { ...font, size, tracking: t })));
-    if (widest <= maxW) break;
+    if (Math.max(...rows.map((r) => measureText(r, { ...font, size, tracking: t }))) <= maxW) break;
     size -= 2;
   }
   return size;
 }
 
 /**
- * One <text> block, direction-aware.
- * RTL anchors to the right margin so the layout mirrors rather than
- * leaving right-to-left text ragged against a left edge.
+ * One <text> block. Direction and alignment resolve together, because
+ * text-anchor is relative to inline direction: under rtl, "start" is the RIGHT
+ * edge, so using "end" there anchors the wrong side and overflows the frame.
  */
-function textEl({ rows, frame, M, top, lh, face, size, fill, opacity }) {
-  const x = face.rtl ? frame.w - M : M;
+function textEl({ rows, frame, M, top, lh, face, size, fill, align = 'start', opacity }) {
+  const { w } = frame;
+  let x, anchor = null;
+  if (align === 'center') { x = Math.round(w / 2); anchor = 'middle'; }
+  else if (face.rtl)      { x = w - M; }
+  else                    { x = M; }
+
   const attrs = [
-    `font-family="${face.family}"`,
-    `font-weight="${face.weight}"`,
-    `font-size="${size}"`,
+    `font-family="${face.family}"`, `font-weight="${face.weight}"`, `font-size="${size}"`,
     face.tracking ? `letter-spacing="${face.tracking}"` : '',
-    `fill="${fill}"`,
-    opacity ? `opacity="${opacity}"` : '',
-    // text-anchor is relative to inline direction: under rtl, "start" is the
-    // RIGHT edge. Using "end" here anchors the left side and overflows right.
+    `fill="${fill}"`, opacity ? `opacity="${opacity}"` : '',
     face.rtl ? 'direction="rtl"' : '',
+    anchor ? `text-anchor="${anchor}"` : '',
   ].filter(Boolean).join(' ');
+
   const spans = rows
     .map((r, i) => `<tspan x="${x}" y="${top + i * lh}">${esc(r)}</tspan>`).join('');
   return `<text ${attrs}>${spans}</text>`;
 }
 
-// ---------------------------------------------------------------- layouts
+// ---------------------------------------------------------------- chrome
 
-export const LAYOUTS = {
-  statement: 'Statement',
-  split: 'Split block',
-  numbered: 'Big number',
-};
-
-function chrome(frame, brand, M) {
+function chrome(frame, brand, M, mode) {
+  if (mode === 'none') return '';
   const { w } = frame;
   const nameFace = faceFor(brand.name, brand, 'mono', 4.4);
-  // brand name sits on the reading-start edge, index opposite - mirrored for RTL
-  const nameX = nameFace.rtl ? w - M : M;
-  const idxX  = nameFace.rtl ? M : w - M;
-  const nameAnchor = nameFace.rtl ? ' direction="rtl"' : '';
-  const idxAnchor  = nameFace.rtl ? '' : ' text-anchor="end"';
+  const rtl = nameFace.rtl;
+
+  const index = `<text x="${rtl ? M : w - M}" y="${M + 14}" font-family="${brand.mono}"
+        font-weight="600" font-size="20" letter-spacing="4.4" fill="${brand.muted}"${
+        rtl ? '' : ' text-anchor="end"'}>${esc(frame.slots.index)}</text>`;
+
+  // "minimal" keeps only the position marker. Dropping the repeated brand line
+  // is the single biggest thing that stops ten frames reading as identical.
+  if (mode === 'minimal') return index;
+
   return `
-  <text x="${nameX}" y="${M + 14}" font-family="${nameFace.family}" font-weight="${nameFace.weight}"
-        font-size="20"${nameFace.tracking ? ` letter-spacing="${nameFace.tracking}"` : ''}
-        fill="${brand.mark}"${nameAnchor}>${esc(brand.name)}</text>
-  <text x="${idxX}" y="${M + 14}" font-family="${brand.mono}" font-weight="600"
-        font-size="20" letter-spacing="4.4" fill="${brand.muted}"${idxAnchor}>${esc(frame.slots.index)}</text>`;
+  <text x="${rtl ? w - M : M}" y="${M + 14}" font-family="${nameFace.family}"
+        font-weight="${nameFace.weight}" font-size="20"${
+        nameFace.tracking ? ` letter-spacing="${nameFace.tracking}"` : ''}
+        fill="${brand.mark}"${rtl ? ' direction="rtl"' : ''}>${esc(brand.name)}</text>
+  ${index}`;
 }
 
 const MAX_BODY_ROWS = 4;
 
-function footer(frame, brand, M) {
+function footer(frame, brand, M, mode, align) {
+  if (mode === 'none') return '';
   const { w, h } = frame;
   const face = faceFor(frame.slots.body, brand, 'body');
-  const font = { ...face, size: 30 };
-  const all = wrap(frame.slots.body, w - M * 2, font);
+  const all = wrap(frame.slots.body, w - M * 2, { ...face, size: 30 });
   const rows = all.slice(0, MAX_BODY_ROWS);
-  // Truncation must be visible, never silent.
-  if (all.length > MAX_BODY_ROWS) rows[MAX_BODY_ROWS - 1] += ' …';
+  if (all.length > MAX_BODY_ROWS) rows[MAX_BODY_ROWS - 1] += ' …';   // never silent
+  const bodyTop = h - 250 - (rows.length - 1) * 38;
+  const body = textEl({ rows, frame, M, top: bodyTop, lh: 38, face, size: 30,
+                        fill: brand.muted, align });
+
+  if (mode === 'minimal') return body;
 
   const tagFace = faceFor(brand.tag, brand, 'mono', -0.5);
   const tagW = Math.round(measureText(brand.tag, { ...tagFace, size: 26 }) + 32);
   const tagX = tagFace.rtl ? w - M - tagW : M;
-  const tagInk = contrastInk(brand.accent);
-  const bodyTop = h - 250 - (rows.length - 1) * 38;
-
   return `
-  ${textEl({ rows, frame, M, top: bodyTop, lh: 38, face, size: 30, fill: brand.muted })}
+  ${body}
   <rect x="${tagX}" y="${h - 200}" width="${tagW}" height="54" fill="${brand.accent}"/>
   <text x="${tagFace.rtl ? tagX + tagW - 16 : tagX + 16}" y="${h - 163}"
         font-family="${tagFace.family}" font-weight="${tagFace.weight}" font-size="26"${
         tagFace.tracking ? ` letter-spacing="${tagFace.tracking}"` : ''}
-        fill="${tagInk}"${tagFace.rtl ? ' direction="rtl"' : ''}>${esc(brand.tag)}</text>
+        fill="${contrastInk(brand.accent)}"${tagFace.rtl ? ' direction="rtl"' : ''}>${esc(brand.tag)}</text>
   <rect x="${M}" y="${h - 96}" width="${w - M * 2}" height="2" fill="${brand.muted}" opacity=".25"/>`;
 }
 
-const BODY = {
-  statement(frame, brand, M) {
-    const { w, h } = frame;
-    const maxW = w - M * 2;
-    const face = faceFor(frame.slots.headline, brand, 'display', -6);
-    const rows = wrap(frame.slots.headline, maxW, { ...face, size: 132 });
-    const size = fitSize(rows, maxW, face, 132, 44);
-    const scaled = { ...face, tracking: face.tracking * (size / 132) };
-    return textEl({ rows, frame, M, top: Math.round(h * 0.34),
-                    lh: Math.round(size * 0.88), face: scaled, size, fill: brand.ink });
-  },
+// ---------------------------------------------------------------- frame
 
-  split(frame, brand, M) {
-    const { w, h } = frame;
-    const maxW = w - M * 2 - 48;
-    const face = faceFor(frame.slots.headline, brand, 'display', -5);
-    const rows = wrap(frame.slots.headline, maxW, { ...face, size: 112 });
-    const size = fitSize(rows, maxW, face, 112, 40);
-    const lh = Math.round(size * 0.9);
-    const top = Math.round(h * 0.3);
-    const scaled = { ...face, tracking: face.tracking * (size / 112) };
-    return `
-  <rect x="0" y="${top - lh}" width="${w}" height="${rows.length * lh + 56}" fill="${brand.accent}"/>
-  ${textEl({ rows, frame, M, top, lh, face: scaled, size, fill: contrastInk(brand.accent) })}`;
-  },
-
-  numbered(frame, brand, M) {
-    const { w, h } = frame;
-    const n = String(frame.slots.index).split('/')[0].trim();
-    const maxW = w - M * 2;
-    const face = faceFor(frame.slots.headline, brand, 'display', -4);
-    const rows = wrap(frame.slots.headline, maxW, { ...face, size: 88 });
-    const size = fitSize(rows, maxW, face, 88, 36);
-    const scaled = { ...face, tracking: face.tracking * (size / 88) };
-    const numX = face.rtl ? w - M : M;
-    const numAnchor = face.rtl ? ' direction="rtl"' : '';
-    return `
-  <text x="${numX}" y="${Math.round(h * 0.42)}" font-family="${brand.display}" font-weight="900"
-        font-size="${Math.round(h * 0.3)}" letter-spacing="-14" fill="${brand.accent}"
-        opacity=".9"${numAnchor}>${esc(n)}</text>
-  ${textEl({ rows, frame, M, top: Math.round(h * 0.56), lh: Math.round(size * 0.92),
-             face: scaled, size, fill: brand.ink })}`;
-  },
-};
-
-export function renderFrame(frame, brand, layout = 'statement') {
+export function renderFrame(frame, brand, deckLayout = 'statement') {
+  const key = LAYOUTS[frame?.layout] ? frame.layout
+            : LAYOUTS[deckLayout] ? deckLayout : 'statement';
+  const L = LAYOUTS[key];
   const { w, h } = frame;
-  const M = Math.round(w * 0.0667);
-  const draw = BODY[layout] || BODY.statement;
+  const M = Math.round(w * L.margin);
+  const maxW = w - M * 2 - (L.band ? 48 : 0);
+
+  const text = L.casing === 'upper'
+    ? String(frame.slots.headline).toUpperCase()
+    : frame.slots.headline;
+
+  const face = faceFor(text, brand, L.voice, L.tracking);
+  const rows = wrap(text, maxW, { ...face, size: L.size });
+  const size = fitSize(rows, maxW, face, L.size, L.min);
+  const scaled = { ...face, tracking: face.tracking * (size / L.size) };
+  const lh = Math.round(size * L.leading);
+  const top = Math.round(h * L.anchor);
+
+  let band = '';
+  let fill = brand.ink;
+  if (L.band) {
+    band = `<rect x="0" y="${top - lh}" width="${w}" height="${rows.length * lh + 56}" fill="${brand.accent}"/>`;
+    fill = contrastInk(brand.accent);
+  }
+
+  let numeral = '';
+  if (L.numeral) {
+    const n = String(frame.slots.index).split('/')[0].trim();
+    numeral = `<text x="${face.rtl ? w - M : M}" y="${Math.round(h * 0.42)}"
+        font-family="${brand.display}" font-weight="900" font-size="${Math.round(h * 0.3)}"
+        letter-spacing="-14" fill="${brand.accent}" opacity=".9"${
+        face.rtl ? ' direction="rtl"' : ''}>${esc(n)}</text>`;
+  }
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
   <defs><style>${FONT_CSS}</style></defs>
   <rect width="${w}" height="${h}" fill="${brand.bg}"/>
-  ${chrome(frame, brand, M)}
-  ${draw(frame, brand, M)}
-  ${footer(frame, brand, M)}
+  ${chrome(frame, brand, M, L.chrome)}
+  ${band}
+  ${numeral}
+  ${textEl({ rows, frame, M, top, lh, face: scaled, size, fill, align: L.align })}
+  ${footer(frame, brand, M, L.chrome, L.align)}
 </svg>`;
 }

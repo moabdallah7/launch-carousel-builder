@@ -42,6 +42,9 @@ These are decisions already paid for. Changing one is a rewrite, not a tweak.
 - **Onboarding** (A1): two questions on first run, seeded deck, skippable,
   never shown again once a deck is saved
 - Fonts generated at build time; all faces OFL-1.1 with licences bundled
+- **Per-frame layouts + deck rhythm** (A3): 6 structurally different layouts,
+  varied automatically across a deck so it reads loud / quiet / loud
+- Second type voice (Instrument Serif) and per-layout casing, chrome and margin
 
 **Verified**
 
@@ -58,7 +61,6 @@ Goal: a stranger gets a good carousel without being taught.
 | # | Item | Why |
 |---|---|---|
 | A2 | **Logo upload** | Brand is colours and text only. Client-side file read to a data URI — no upload. |
-| A3 | **Per-frame layout** | Layout is deck-wide. Real carousels vary frame to frame. |
 | A4 | **Character-count feedback** | Warn before truncation, don't just show `…` after the fact. |
 | A5 | **Mobile / tablet UI** | The 3-column layout assumes a desktop. Most social work happens on a phone. |
 | A6 | **Undo/redo** | Command log. Cheap now, a rewrite later. |
@@ -95,6 +97,17 @@ Deferred on purpose. Each one brings back the server we avoided.
 - Paid tier
 
 ---
+
+## Still looks same-y
+
+Variation now comes from layout, voice, casing, scale and chrome. What is still
+missing is everything that is not type on flat colour:
+
+- **No imagery or texture.** Every frame is type on a solid field. This is the
+  deepest remaining sameness, and no amount of layout variety fixes it.
+- **One accent per deck.** Frames cannot carry their own colour.
+- **Quiet frames can read as empty** at thumbnail size, which is the cost of
+  the breathing room they buy.
 
 ## Known issues
 

@@ -10,17 +10,21 @@ export const SIZES = {
 
 export const SCHEMA_VERSION = 1;
 
+import { rhythmFor } from './layouts.js';
+
+// Stored in natural case. Layouts that want caps uppercase it themselves -
+// storing SHOUTING here would deny the serif layouts their whole voice.
 const STARTER = [
-  ['EVERYONE\nSHIPS.\nWE STAY.',  'Say the one thing that separates you. Short beats clever.'],
-  ['THE PROBLEM',                 'Name the thing your reader already feels but has not said.'],
-  ['WHY IT HAPPENS',              'One cause, plainly. Resist listing three.'],
-  ['WHAT WE DO',                  'The change you make, in the reader’s words not yours.'],
-  ['PROOF',                       'A number, a name, or a result. Something checkable.'],
-  ['HOW IT WORKS',                'Three steps at most. This is the swipe people stop on.'],
-  ['WHAT YOU GET',                'Deliverables, not adjectives.'],
-  ['WHO IT IS FOR',               'Being specific here loses the wrong people on purpose.'],
-  ['OBJECTION',                   'Answer the reason they would say no, before they do.'],
-  ['DO THE THING',                'One instruction. One way to reach you.'],
+  ['Everyone ships.\nWe stay.', 'Say the one thing that separates you. Short beats clever.'],
+  ['The problem',               'Name the thing your reader already feels but has not said.'],
+  ['Why it happens',            'One cause, plainly. Resist listing three.'],
+  ['What we do',                'The change you make, in the reader\u2019s words not yours.'],
+  ['Proof',                     'A number, a name, or a result. Something checkable.'],
+  ['How it works',              'Three steps at most. This is the swipe people stop on.'],
+  ['What you get',              'Deliverables, not adjectives.'],
+  ['Who it is for',             'Being specific here loses the wrong people on purpose.'],
+  ['The objection',             'Answer the reason they would say no, before they do.'],
+  ['Do the thing',              'One instruction. One way to reach you.'],
 ];
 
 // Seeded copy: the user's own subject in the frames that can carry it, and
@@ -33,14 +37,14 @@ function starterFor(seed) {
 
   // The name belongs in a headline; the description belongs in body copy.
   // "TRY A SPECIALTY COFFEE SHOP." is what happens when you mix them up.
-  const NAME = (brand || subject).toUpperCase();
+  const NAME = brand || subject;
   const sentence = subject
     ? subject.charAt(0).toUpperCase() + subject.slice(1) + (/[.!?]$/.test(subject) ? '' : '.')
     : 'Say the one thing that separates you. Short beats clever.';
 
   const copy = STARTER.map((row) => [...row]);
-  copy[0] = [`INTRODUCING\n${NAME}.`, sentence];
-  copy[copy.length - 1] = [`TRY\n${NAME}.`, 'One instruction. One way to reach you.'];
+  copy[0] = [`Introducing\n${NAME}.`, sentence];
+  copy[copy.length - 1] = [`Try\n${NAME}.`, 'One instruction. One way to reach you.'];
   return copy;
 }
 
@@ -60,6 +64,7 @@ export function makeDeck(brand, sizeKey = 'carousel', count = 10, seed = null) {
       return {
         id: `frame-${String(i + 1).padStart(2, '0')}`,
         w, h,
+        layout: rhythmFor(i),
         slots: { headline, body, index: `${String(i + 1).padStart(2, '0')} / ${n}` },
       };
     }),
@@ -86,7 +91,8 @@ export function addFrame(deck, at) {
   const { w, h } = SIZES[deck.size];
   deck.frames.splice(at + 1, 0, {
     id: 'tmp', w, h,
-    slots: { headline: 'NEW FRAME', body: 'Say something worth the swipe.', index: '' },
+    layout: rhythmFor(at + 1),
+    slots: { headline: 'New frame', body: 'Say something worth the swipe.', index: '' },
   });
   return reindex(deck);
 }
