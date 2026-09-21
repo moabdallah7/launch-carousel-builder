@@ -1,0 +1,37 @@
+[
+  {
+    "family": "Archivo",
+    "weight": "900",
+    "style": "normal",
+    "subset": "latin",
+    "file": "archivo-900.woff2"
+  },
+  {
+    "family": "Martian Mono",
+    "weight": "600",
+    "style": "normal",
+    "subset": "latin",
+    "file": "martianmono-600.woff2"
+  },
+  {
+    "family": "IBM Plex Sans",
+    "weight": "400",
+    "style": "normal",
+    "subset": "latin",
+    "file": "ibmplexsans-400.woff2"
+  },
+  {
+    "family": "IBM Plex Sans Arabic",
+    "weight": "400",
+    "style": "normal",
+    "subset": "arabic",
+    "file": "ibmplexsansarabic-400.woff2"
+  },
+  {
+    "family": "IBM Plex Sans Arabic",
+    "weight": "700",
+    "style": "normal",
+    "subset": "arabic",
+    "file": "ibmplexsansarabic-700.woff2"
+  }
+]
