@@ -1,0 +1,14 @@
+{
+  "name": "launch-carousel-builder",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser-based carousel builder. No server, no accounts, no uploads.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "scripts": {
+    "fonts": "node scripts/build-fonts.mjs",
+    "build": "npm run fonts && node scripts/build.mjs",
+    "start": "npm run build && node scripts/serve.mjs dist 4190",
+    "dev": "npm run fonts && node scripts/serve.mjs . 4190"
+  }
+}

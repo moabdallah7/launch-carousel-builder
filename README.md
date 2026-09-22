@@ -3,18 +3,20 @@
 Browser-based carousel maker. No server, no accounts, no uploads — a user's
 words and images never leave their browser.
 
-## Run locally
+## Commands
 
 ```sh
-node scripts/build-fonts.mjs      # generates src/fontmanifest.js
-python3 -m http.server 4190
+npm start     # build, then serve dist/ — always run this before shipping
+npm run build # write dist/ only
+npm run dev   # serve source unbuilt, for fast iteration
 ```
 
-## Build for upload
+`npm start` builds first on purpose: serving the source directly means you
+never test what you actually upload. The dev server negotiates
+`Content-Encoding` and serves the `.br`/`.gz` files the build produced, so the
+bytes on the wire locally are the bytes a host would send.
 
-```sh
-node scripts/build.mjs            # writes dist/
-```
+No dependencies — `npm install` is not required.
 
 **Upload `dist/` only.** It contains minified HTML/JS, the fonts, the OFL
 licences, and pre-compressed `.gz`/`.br` copies of every text file.
