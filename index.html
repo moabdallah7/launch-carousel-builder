@@ -119,7 +119,7 @@
 <script type="module">
 import { DEFAULT_BRAND, PRESETS, applyPreset } from './src/brand.js';
 import { makeDeck, resizeDeck, addFrame, removeFrame, SIZES } from './src/deck.js';
-import { renderFrame, ensureFonts, LAYOUTS, rhythmFor } from './src/render.js';
+import { renderFrame, ensureFonts, ensureFontsFor, exportFontCss, loadGroup, LAYOUTS, rhythmFor } from './src/render.js';
 import { toPngBlob } from './src/export.js';
 import { makeZip } from './src/zip.js';
 import { save, load, clear, debounce } from './src/store.js';
@@ -193,9 +193,14 @@ function syncFields() {
 }
 
 // ---- controls
+const RTL_TEST = /[\u0590-\u05FF\u0600-\u06FF\u0700-\u074F\u0780-\u07BF\u08A0-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
 for (const [id, key] of [['headline', 'headline'], ['body', 'body']]) {
-  $(id).addEventListener('input', () => {
-    deck.frames[active].slots[key] = $(id).value; render();
+  $(id).addEventListener('input', async () => {
+    const v = $(id).value;
+    deck.frames[active].slots[key] = v;
+    // Arabic is 66KB - fetched the moment it is actually typed, not before.
+    if (RTL_TEST.test(v)) await loadGroup('arabic');
+    render();
   });
 }
 for (const [id, key] of [['bname', 'name'], ['btag', 'tag'], ['cbg', 'bg'],
@@ -214,9 +219,11 @@ $('layouts').innerHTML = Object.entries(LAYOUTS)
   .map(([k, L]) => `<button class="chip" data-k="${k}">${L.label}</button>`).join('');
 // Layout is per-frame: a deck where every frame uses one layout is exactly the
 // "all the same vibe" problem. Deck-wide is available, but opt-in.
-$('layouts').onclick = (e) => {
+$('layouts').onclick = async (e) => {
   const btn = e.target.closest('.chip'); if (!btn) return;
-  deck.frames[active].layout = btn.dataset.k; render();
+  deck.frames[active].layout = btn.dataset.k;
+  if (btn.dataset.k === 'editorial') await loadGroup('serif');
+  render();
 };
 $('applyAll').onclick = () => {
   const k = deck.frames[active].layout;
@@ -309,12 +316,14 @@ $('reset').onclick = async () => {
   if (!confirm('Discard this deck and start over?')) return;
   clear();
   deck = deckFrom(await runOnboarding());
+  await ensureFontsFor(deck);
   active = 0; syncFields(); render(); status('Started a new deck.');
 };
 
 $('exportOne').onclick = async () => {
   const f = deck.frames[active];
-  save2(await toPngBlob(renderFrame(f, deck.brand, deck.layout), f.w, f.h, 2), `${f.id}@2x.png`);
+  const css = await exportFontCss();
+  save2(await toPngBlob(renderFrame(f, deck.brand, deck.layout, css), f.w, f.h, 2), `${f.id}@2x.png`);
 };
 
 $('exportAll').onclick = async () => {
@@ -330,10 +339,11 @@ $('exportAll').onclick = async () => {
 
 async function buildDeckZip(scale = 2, onProgress = () => {}) {
   const files = [];
+  const css = await exportFontCss();      // built once, cached, reused per frame
   for (let i = 0; i < deck.frames.length; i++) {
     const f = deck.frames[i];
     onProgress(i + 1, deck.frames.length);
-    const blob = await toPngBlob(renderFrame(f, deck.brand, deck.layout), f.w, f.h, scale);
+    const blob = await toPngBlob(renderFrame(f, deck.brand, deck.layout, css), f.w, f.h, scale);
     files.push({ name: `${f.id}@${scale}x.png`, data: new Uint8Array(await blob.arrayBuffer()) });
   }
   return makeZip(files);
@@ -349,6 +359,7 @@ function save2(blob, filename) {
 await ensureFonts();
 // First run only: a returning user with a saved deck goes straight to work.
 if (!deck) deck = deckFrom(await runOnboarding());
+await ensureFontsFor(deck);   // serif / arabic, only if this deck uses them
 syncFields();
 render();
 

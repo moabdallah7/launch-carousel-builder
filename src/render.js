@@ -1,11 +1,12 @@
 // document + brand -> SVG string. Pure: identical inputs give identical output,
 // which is what keeps the on-screen frame and the exported PNG in sync.
 
-import { FONT_CSS } from './fonts.js';
+import { ensureFonts as loadCore, ensureFontsFor, loadGroup } from './fontloader.js';
 import { contrastInk } from './brand.js';
 import { LAYOUTS } from './layouts.js';
 
 export { LAYOUTS, layoutOf, CHROME, rhythmFor } from './layouts.js';
+export { ensureFontsFor, exportFontCss, loadGroup } from './fontloader.js';
 
 const esc = (s) => String(s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -39,22 +40,9 @@ export function faceFor(text, brand, voice, tracking = 0) {
 
 // ---------------------------------------------------------------- fonts
 
-let _fontsReady = null;
-export function ensureFonts() {
-  if (_fontsReady) return _fontsReady;
-  const style = document.createElement('style');
-  style.textContent = FONT_CSS;
-  document.head.appendChild(style);
-  _fontsReady = Promise.all([
-    document.fonts.load("900 132px 'Archivo'"),
-    document.fonts.load("600 26px 'Martian Mono'"),
-    document.fonts.load("400 30px 'IBM Plex Sans'"),
-    document.fonts.load("400 124px 'Instrument Serif'"),
-    document.fonts.load("700 132px '" + ARABIC_FAMILY + "'"),
-    document.fonts.load("400 30px '" + ARABIC_FAMILY + "'"),
-  ]).then(() => document.fonts.ready);
-  return _fontsReady;
-}
+// Core faces must be present before the first render: the measuring canvas
+// falls back silently otherwise and every width comes out wrong.
+export const ensureFonts = loadCore;
 
 let _ctx = null;
 export function measureText(text, { family, weight = 400, size, tracking = 0 }) {
@@ -197,7 +185,12 @@ function imageLayer(frame, brand) {
 
 // ---------------------------------------------------------------- frame
 
-export function renderFrame(frame, brand, deckLayout = 'statement') {
+/**
+ * @param {string} fontCss  @font-face rules to inline. Empty for previews (the
+ *   document already has the faces); data URIs for export, where the rasterised
+ *   SVG cannot fetch anything.
+ */
+export function renderFrame(frame, brand, deckLayout = 'statement', fontCss = '') {
   const key = LAYOUTS[frame?.layout] ? frame.layout
             : LAYOUTS[deckLayout] ? deckLayout : 'statement';
   const L = LAYOUTS[key];
@@ -233,7 +226,7 @@ export function renderFrame(frame, brand, deckLayout = 'statement') {
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-  <defs><style>${FONT_CSS}</style></defs>
+  ${fontCss ? `<defs><style>${fontCss}</style></defs>` : ''}
   <rect width="${w}" height="${h}" fill="${brand.bg}"/>
   ${imageLayer(frame, brand)}
   ${chrome(frame, brand, M, L.chrome)}
