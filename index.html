@@ -89,6 +89,19 @@
         <button class="ghost" id="addFrame">+ Frame</button>
         <button class="ghost" id="delFrame">− Frame</button>
       </div>
+
+      <label>Image <span id="quota" style="color:#5a5a5a;text-transform:none;letter-spacing:0"></span></label>
+      <input type="file" id="imgFile" accept="image/*" hidden>
+      <button class="ghost" id="imgPick" style="margin-top:0">Add an image</button>
+      <div id="imgTools" hidden>
+        <div class="chips" style="margin-top:8px">
+          <button class="chip" id="fitCover">Cover</button>
+          <button class="chip" id="fitContain">Fit</button>
+          <button class="chip" id="imgRemove">Remove</button>
+        </div>
+        <label>Darken behind text <span id="scrimVal" style="color:#5a5a5a"></span></label>
+        <input type="range" id="scrim" min="0" max="85" step="5" style="padding:0">
+      </div>
     </fieldset>
 
     <button class="go" id="exportAll">Export deck · ZIP @2×</button>
@@ -111,6 +124,8 @@ import { toPngBlob } from './src/export.js';
 import { makeZip } from './src/zip.js';
 import { save, load, clear, debounce } from './src/store.js';
 import { runOnboarding } from './src/onboarding.js';
+import { importImage, DEFAULT_IMAGE } from './src/images.js';
+import { imageQuota, canAddImageTo, limitsFor, TIER } from './src/limits.js';
 
 const $ = (id) => document.getElementById(id);
 const status = (t) => { $('status').textContent = t; };
@@ -132,7 +147,15 @@ function deckFrom(answers) {
   return makeDeck(brand, 'carousel', 10, answers);
 }
 
-const persist = debounce(() => { if (!save(deck)) status('Autosave unavailable in this browser.'); });
+const persist = debounce(() => {
+  if (save(deck)) return;
+  // Images are almost always the cause: localStorage is ~5MB for the whole
+  // origin, and a data URI is 4/3 the size of the bytes it encodes.
+  const n = imageQuota(deck, TIER.free).used;
+  status(n
+    ? `Autosave failed — browser storage is full. Removing an image (${n} in this deck) should free space.`
+    : 'Autosave unavailable in this browser. Your work is still exportable.');
+});
 
 function render() {
   const f = deck.frames[active];
@@ -152,6 +175,7 @@ function render() {
   const activeLayout = deck.frames[active].layout || deck.layout;
   document.querySelectorAll('#layouts .chip')
     .forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.k === activeLayout)));
+  syncImageUI();          // quota/controls must track the deck, not just image edits
   persist();
 }
 
@@ -207,6 +231,72 @@ $('reshuffle').onclick = () => {
 $('size').innerHTML = Object.entries(SIZES)
   .map(([k, s]) => `<option value="${k}">${s.label}</option>`).join('');
 $('size').addEventListener('change', () => { resizeDeck(deck, $('size').value); render(); });
+
+// ---- images
+const tier = TIER.free;   // one line to flip when the paid version exists
+
+function syncImageUI() {
+  const f = deck.frames[active];
+  const q = imageQuota(deck, tier);
+  const has = !!f.image?.src;
+  $('imgTools').hidden = !has;
+  $('imgPick').textContent = has ? 'Replace image' : 'Add an image';
+  $('imgPick').disabled = !canAddImageTo(deck, f, tier);
+  // A deck can arrive over the cap (saved on a higher tier, or the cap lowered),
+  // so never render "4 of 3 used".
+  $('quota').textContent = q.max === Infinity ? `· ${q.used} used`
+    : q.used > q.max ? `· ${q.used} images · limit ${q.max}`
+    : `· ${q.used} of ${q.max} used`;
+  if (has) {
+    const pct = Math.round((f.image.scrim ?? 0) * 100);
+    $('scrim').value = pct;
+    $('scrimVal').textContent = `${pct}%`;
+    $('fitCover').setAttribute('aria-pressed', String(f.image.fit !== 'contain'));
+    $('fitContain').setAttribute('aria-pressed', String(f.image.fit === 'contain'));
+  }
+}
+
+$('imgPick').onclick = () => {
+  const f = deck.frames[active];
+  if (!canAddImageTo(deck, f, tier)) {
+    const q = imageQuota(deck, tier);
+    status(`${limitsFor(tier).label} decks include ${q.max} images. `
+         + 'Remove one, or upgrade for unlimited.');
+    return;
+  }
+  $('imgFile').click();
+};
+
+$('imgFile').onchange = async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = '';                       // so choosing the same file again re-fires
+  if (!file) return;
+  status('Processing image…');
+  try {
+    const img = await importImage(file);
+    deck.frames[active].image = { ...DEFAULT_IMAGE, ...img };
+    render();
+    syncImageUI();
+    status(`Image added · ${img.w}×${img.h} · ${(img.bytes / 1024).toFixed(0)} KB`);
+  } catch (err) {
+    status(err.message);
+  }
+};
+
+$('imgRemove').onclick = () => {
+  delete deck.frames[active].image;
+  render(); syncImageUI(); status('Image removed.');
+};
+$('fitCover').onclick = () => {
+  deck.frames[active].image.fit = 'cover'; render(); syncImageUI();
+};
+$('fitContain').onclick = () => {
+  deck.frames[active].image.fit = 'contain'; render(); syncImageUI();
+};
+$('scrim').oninput = () => {
+  deck.frames[active].image.scrim = +$('scrim').value / 100;
+  render(); syncImageUI();
+};
 
 $('addFrame').onclick = () => { addFrame(deck, active); active++; syncFields(); render(); };
 $('delFrame').onclick = () => {

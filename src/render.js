@@ -173,6 +173,28 @@ function footer(frame, brand, M, mode, align) {
   <rect x="${M}" y="${h - 96}" width="${w - M * 2}" height="2" fill="${brand.muted}" opacity=".25"/>`;
 }
 
+// ---------------------------------------------------------------- image
+
+/**
+ * Background image plus a scrim. Type over a photograph is unreadable without
+ * one, and the user cannot be relied on to notice before exporting.
+ * preserveAspectRatio does the cover/contain work: "slice" crops to fill,
+ * "meet" fits the whole image inside the frame.
+ */
+function imageLayer(frame, brand) {
+  const img = frame.image;
+  if (!img?.src) return '';
+  const { w, h } = frame;
+  const par = img.fit === 'contain' ? 'xMidYMid meet' : 'xMidYMid slice';
+  const opacity = img.opacity ?? 1;
+  const scrim = img.scrim ?? 0;
+  return `
+  <image href="${esc(img.src)}" x="0" y="0" width="${w}" height="${h}"
+         preserveAspectRatio="${par}"${opacity < 1 ? ` opacity="${opacity}"` : ''}/>${
+  scrim > 0 ? `
+  <rect width="${w}" height="${h}" fill="${brand.bg}" opacity="${scrim}"/>` : ''}`;
+}
+
 // ---------------------------------------------------------------- frame
 
 export function renderFrame(frame, brand, deckLayout = 'statement') {
@@ -213,6 +235,7 @@ export function renderFrame(frame, brand, deckLayout = 'statement') {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
   <defs><style>${FONT_CSS}</style></defs>
   <rect width="${w}" height="${h}" fill="${brand.bg}"/>
+  ${imageLayer(frame, brand)}
   ${chrome(frame, brand, M, L.chrome)}
   ${band}
   ${numeral}

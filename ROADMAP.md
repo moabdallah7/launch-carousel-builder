@@ -45,6 +45,8 @@ These are decisions already paid for. Changing one is a rewrite, not a tweak.
 - **Per-frame layouts + deck rhythm** (A3): 6 structurally different layouts,
   varied automatically across a deck so it reads loud / quiet / loud
 - Second type voice (Instrument Serif) and per-layout casing, chrome and margin
+- **Image layers**: client-side import, downscaled and re-encoded in the browser,
+  cover/fit, adjustable scrim; free tier capped at 3 per deck
 
 **Verified**
 
@@ -85,7 +87,7 @@ Only worth starting once Phase A proves people finish a deck.
 | C2 | Selection, move, resize |
 | C3 | Add / delete / reorder layers |
 | C4 | Snapping and alignment guides |
-| C5 | Image layers, not just background |
+| C5 | Image layers as *movable* layers, not just frame backgrounds |
 
 ## Phase D — if it earns it
 
@@ -94,7 +96,18 @@ Deferred on purpose. Each one brings back the server we avoided.
 - Accounts and saved projects
 - Team brand kits
 - One design → every ad placement (the "42 placements, 1 system" feature)
-- Paid tier
+
+### Paid tier
+
+`src/limits.js` holds the ceilings; the tier is one constant in `index.html`.
+Free is 3 images and 10 frames, Pro lifts both. There is **no payment flow and
+no upgrade path yet** — the gate exists so the ceiling is visible from the
+start rather than appearing after people have built decks that suddenly break.
+
+Before charging, this needs: a real upgrade route, a decision on how tier is
+stored without accounts (and it probably cannot be, honestly — a client-side
+limit is a suggestion, not an enforcement), and a view on whether images are
+the right thing to meter at all.
 
 ---
 
@@ -103,8 +116,8 @@ Deferred on purpose. Each one brings back the server we avoided.
 Variation now comes from layout, voice, casing, scale and chrome. What is still
 missing is everything that is not type on flat colour:
 
-- **No imagery or texture.** Every frame is type on a solid field. This is the
-  deepest remaining sameness, and no amount of layout variety fixes it.
+- ~~No imagery~~ — background images with scrim are in (3 per deck on free).
+  Still no texture, pattern or duotone treatment.
 - **One accent per deck.** Frames cannot carry their own colour.
 - **Quiet frames can read as empty** at thumbnail size, which is the cost of
   the breathing room they buy.
