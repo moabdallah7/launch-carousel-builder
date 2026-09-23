@@ -41,6 +41,9 @@ These are decisions already paid for. Changing one is a rewrite, not a tweak.
   direction-aware anchoring, tracking zeroed to preserve letter joining
 - **Onboarding** (A1): two questions on first run, seeded deck, skippable,
   never shown again once a deck is saved
+- **Desktop gate** (A5, resolved by *not* building a phone UI): below 820px
+  visitors get an honest "built for a bigger screen" page with a link to the
+  studio, an escape hatch, and auto-dismiss on widening
 - Fonts generated at build time; all faces OFL-1.1 with licences bundled
 - **Per-frame layouts + deck rhythm** (A3): 6 structurally different layouts,
   varied automatically across a deck so it reads loud / quiet / loud
@@ -64,8 +67,22 @@ Goal: a stranger gets a good carousel without being taught.
 |---|---|---|
 | A2 | **Logo upload** | Brand is colours and text only. Client-side file read to a data URI — no upload. |
 | A4 | **Character-count feedback** | Warn before truncation, don't just show `…` after the fact. |
-| A5 | **Mobile / tablet UI** | The 3-column layout assumes a desktop. Most social work happens on a phone. |
 | A6 | **Undo/redo** | Command log. Cheap now, a rewrite later. |
+
+### Why there is no phone UI
+
+Deliberate, not missing. The app's chrome is a fixed 488px, so below ~820px the
+preview collapses — at 390px the stage measures 48px and the frame does not
+render at all.
+
+A phone version would also fail at the finish line regardless of layout: the
+deliverable is a ZIP of ten 2160x2700 PNGs, which iOS cannot unzip or move to
+the camera roll. The user could not post what they made.
+
+So narrow screens get a clear page and a link to the studio instead. It costs
+a turned-away visitor 19KB and no font downloads, and it converts better than
+an editor that cannot finish the job. Revisit only if analytics show real phone
+traffic *and* single-frame export lands.
 
 ## Phase B — public launch
 
