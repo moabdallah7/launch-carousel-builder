@@ -9,7 +9,7 @@ import { PRESETS } from './brand.js';
 const esc = (s) => String(s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-const CSS = `
+export const OB_CSS = `
 .ob-back{position:fixed;inset:0;z-index:50;background:#0b0b0b;display:grid;
   place-items:center;padding:24px;overflow:auto}
 .ob{width:min(560px,100%);animation:ob-in .25s ease-out}
@@ -41,7 +41,7 @@ const CSS = `
 export function runOnboarding() {
   return new Promise((resolve) => {
     const style = document.createElement('style');
-    style.textContent = CSS;
+    style.textContent = OB_CSS;
     document.head.appendChild(style);
 
     const back = document.createElement('div');

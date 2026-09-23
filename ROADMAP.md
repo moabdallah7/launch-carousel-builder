@@ -41,6 +41,9 @@ These are decisions already paid for. Changing one is a rewrite, not a tweak.
   direction-aware anchoring, tracking zeroed to preserve letter joining
 - **Onboarding** (A1): two questions on first run, seeded deck, skippable,
   never shown again once a deck is saved
+- **Error containment** (B4): decks validated at the storage boundary, autosave
+  refuses invalid decks, render falls back to the last good version, and an
+  unopenable saved deck is offered as a download before anything is cleared
 - **Desktop gate** (A5, resolved by *not* building a phone UI): below 820px
   visitors get an honest "built for a bigger screen" page with a link to the
   studio, an escape hatch, and auto-dismiss on widening
@@ -91,7 +94,6 @@ traffic *and* single-frame export lands.
 | B1 | **Hosting** | Static files, any host. Keep the zero-third-party property. |
 | B2 | **"Made with" CTA** | The lead-gen mechanism. Optional watermark, link back to the studio. |
 | B3 | **Privacy page** | Short and true: nothing collected. Mirrors the studio site's. |
-| B4 | **Error boundary** | One thrown render must not blank the app and lose their work. |
 | B5 | **Cross-browser pass** | Safari and Firefox differ on `ctx.letterSpacing` and SVG rasterising. Currently unverified outside Chromium. |
 
 ## Phase C — editor

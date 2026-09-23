@@ -45,11 +45,17 @@
     background:#000;color:#8a8a8a;padding:1px 3px}
   .status{margin-top:10px;font-size:11px;color:#6a6a6a;min-height:16px}
   .hint{font-size:10px;color:#5a5a5a;margin-top:8px;line-height:1.45}
+  .errbar{display:flex;gap:10px;align-items:flex-start;background:#2a1414;
+    border:1px solid #5c2020;color:#ffb4b4;padding:10px 12px;border-radius:3px;
+    font-size:12px;line-height:1.45;margin-bottom:14px}
+  .errbar-msg{flex:1}
+  .errbar-x{background:none;border:0;color:#ffb4b4;cursor:pointer;font-size:12px;
+    padding:0;line-height:1.45}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="panel">
+  <div class="panel" id="panel">
     <h1>Launch Carousel<span class="beta">BETA</span></h1>
     <p class="sub" id="deckName"></p>
 
@@ -122,9 +128,10 @@ import { makeDeck, resizeDeck, addFrame, removeFrame, SIZES } from './src/deck.j
 import { renderFrame, ensureFonts, ensureFontsFor, exportFontCss, loadGroup, LAYOUTS, rhythmFor } from './src/render.js';
 import { toPngBlob } from './src/export.js';
 import { makeZip } from './src/zip.js';
-import { save, load, clear, debounce } from './src/store.js';
-import { runOnboarding } from './src/onboarding.js';
+import { save, load, clear, debounce, validate } from './src/store.js';
+import { runOnboarding, OB_CSS } from './src/onboarding.js';
 import { requireDesktop } from './src/desktop-gate.js';
+import { installErrorHandlers, createErrorBar, downloadBackup, ERR_CSS } from './src/errors.js';
 import { importImage, DEFAULT_IMAGE } from './src/images.js';
 import { imageQuota, canAddImageTo, limitsFor, TIER } from './src/limits.js';
 
@@ -134,7 +141,10 @@ const STUDIO = { name: 'MUDOLOOO STUDIOS', url: '', email: 'hey@mudolo.studio' }
 const $ = (id) => document.getElementById(id);
 const status = (t) => { $('status').textContent = t; };
 
-let deck = load();
+// load() returns a deck, null, or {corrupt, raw} - never a half-valid deck
+const stored = load();
+const corruptRaw = stored && stored.corrupt ? stored.raw : null;
+let deck = corruptRaw ? null : stored;
 let active = 0;
 
 /** Build a deck from onboarding answers; null answers = blank deck. */
@@ -151,7 +161,26 @@ function deckFrom(answers) {
   return makeDeck(brand, 'carousel', 10, answers);
 }
 
+// recovery dialog reuses the onboarding styles, which otherwise only exist
+// while onboarding is on screen
+const obStyle = document.createElement('style');
+obStyle.textContent = OB_CSS;
+document.head.appendChild(obStyle);
+
+const errBar = createErrorBar($('panel'));
+let lastGood = null;            // JSON of the last deck that rendered cleanly
+
+function report(err, label) {
+  console.error(`[${label}]`, err);
+  errBar.show(`Something went wrong (${label}). Your work is saved — `
+            + 'the last good version is on screen.');
+}
+installErrorHandlers(report);
+
 const persist = debounce(() => {
+  // A deck that fails validation must never reach storage, or the next visit
+  // opens straight into the failure.
+  if (!validate(deck)) { report(new Error('deck failed validation'), 'autosave'); return; }
   if (save(deck)) return;
   // Images are almost always the cause: localStorage is ~5MB for the whole
   // origin, and a data URI is 4/3 the size of the bytes it encodes.
@@ -161,7 +190,32 @@ const persist = debounce(() => {
     : 'Autosave unavailable in this browser. Your work is still exportable.');
 });
 
+/**
+ * Render, and if it throws, fall back to the last version that worked.
+ * Critically it does NOT persist on failure: autosaving a deck that cannot
+ * render is what turns one bad frame into a permanent crash loop.
+ */
 function render() {
+  try {
+    draw();
+    lastGood = JSON.stringify(deck);
+    errBar.hide();
+    persist();
+  } catch (err) {
+    report(err, 'render');
+    if (!lastGood) throw err;                 // nothing safe to fall back to
+    try {
+      deck = JSON.parse(lastGood);
+      active = Math.min(active, deck.frames.length - 1);
+      draw();
+      syncFields();
+    } catch (fatal) {
+      report(fatal, 'recovery');
+    }
+  }
+}
+
+function draw() {
   const f = deck.frames[active];
   $('frame').innerHTML = renderFrame(f, deck.brand, deck.layout);
   $('deckName').textContent = `${deck.frames.length} frames · ${SIZES[deck.size].label}`;
@@ -180,7 +234,6 @@ function render() {
   document.querySelectorAll('#layouts .chip')
     .forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.k === activeLayout)));
   syncImageUI();          // quota/controls must track the deck, not just image edits
-  persist();
 }
 
 function syncFields() {
@@ -360,13 +413,49 @@ function save2(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/**
+ * Hand the user their unreadable deck as a file before anything is cleared.
+ * Losing someone's work silently is worse than any crash.
+ */
+async function offerBackup(raw, err) {
+  if (err) report(err, 'saved deck');
+  await new Promise((resolve) => {
+    const el = document.createElement('div');
+    el.className = 'ob-back';
+    el.innerHTML = `
+      <div class="ob">
+        <h2>We couldn't open<br>your saved deck.</h2>
+        <p class="lede">Nothing has been deleted yet. Download a copy if you want
+          to keep it, then start a fresh deck.</p>
+        <button class="go" id="rc-new">Start a fresh deck</button>
+        <button class="skip" id="rc-save">Download a backup first</button>
+      </div>`;
+    document.body.appendChild(el);
+    el.querySelector('#rc-save').onclick = () => downloadBackup(raw, 'carousel-backup.json');
+    el.querySelector('#rc-new').onclick = () => { el.remove(); clear(); resolve(); };
+  });
+}
+
 await requireDesktop({ minWidth: 820, studio: STUDIO });
 await ensureFonts();
+// A stored deck that fails validation is handed back before anything else.
+if (corruptRaw) await offerBackup(corruptRaw);
+
 // First run only: a returning user with a saved deck goes straight to work.
 if (!deck) deck = deckFrom(await runOnboarding());
 await ensureFontsFor(deck);   // serif / arabic, only if this deck uses them
-syncFields();
-render();
+try {
+  syncFields();
+  render();
+} catch (err) {
+  // last line of defence: valid-shaped but still unrenderable
+  await offerBackup(JSON.stringify(deck), err);
+  clear();
+  deck = deckFrom(await runOnboarding());
+  await ensureFontsFor(deck);
+  active = 0; lastGood = null;
+  syncFields(); render();
+}
 
 window.__studio = { get deck() { return deck; }, buildDeckZip, renderFrame };
 </script>
