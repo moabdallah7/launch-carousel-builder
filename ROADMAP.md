@@ -41,6 +41,10 @@ These are decisions already paid for. Changing one is a rewrite, not a tweak.
   direction-aware anchoring, tracking zeroed to preserve letter joining
 - **Onboarding** (A1): two questions on first run, seeded deck, skippable,
   never shown again once a deck is saved
+- **Safari verified**: `ctx.letterSpacing` supported, no text overflow, export
+  works. The no-`letterSpacing` fallback was also proven safe by measurement —
+  it over-estimates width by 0–9px across every line, never under-estimates, so
+  a browser lacking the API shrinks type slightly early rather than overflowing
 - **Error containment** (B4): decks validated at the storage boundary, autosave
   refuses invalid decks, render falls back to the last good version, and an
   unopenable saved deck is offered as a download before anything is cleared
@@ -94,7 +98,7 @@ traffic *and* single-frame export lands.
 | B1 | **Hosting** | Static files, any host. Keep the zero-third-party property. |
 | B2 | **"Made with" CTA** | The lead-gen mechanism. Optional watermark, link back to the studio. |
 | B3 | **Privacy page** | Short and true: nothing collected. Mirrors the studio site's. |
-| B5 | **Cross-browser pass** | Safari and Firefox differ on `ctx.letterSpacing` and SVG rasterising. Currently unverified outside Chromium. |
+| B5 | **Firefox pass** | Chromium and Safari verified. Firefox untested; it is the likely home of the no-`letterSpacing` path. |
 
 ## Phase C — editor
 
@@ -146,7 +150,7 @@ missing is everything that is not type on flat colour:
 - Arabic headline ink overhangs the right margin by ~2.4px (glyph overhang, not
   misalignment). Cosmetic at current margins.
 - Body copy is capped at 4 wrapped rows; overflow shows `…`.
-- Only Chromium is tested.
+- Firefox is untested. Chromium and Safari are verified.
 - Arabic display weight is 700 — the latin display face is 900, so weight differs
   between scripts. An Arabic display face would close the gap.
 - `Big number` layout renders its numeral in the latin display face regardless of
