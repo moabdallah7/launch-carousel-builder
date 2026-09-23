@@ -183,6 +183,27 @@ function imageLayer(frame, brand) {
   <rect width="${w}" height="${h}" fill="${brand.bg}" opacity="${scrim}"/>` : ''}`;
 }
 
+// ---------------------------------------------------------------- credit
+
+/**
+ * "Made with" mark on exported frames. This is the whole reason a studio gives
+ * a tool away: every carousel someone posts carries a quiet attribution.
+ *
+ * Sits in the dead space below the footer rule so it never collides with the
+ * tag chip or body copy, and is drawn in the muted colour at low opacity - it
+ * should read as a credit, not compete with the user's own work.
+ */
+function credit(frame, brand, credit) {
+  if (!credit?.enabled || !credit.text) return '';
+  const { w, h } = frame;
+  const M = Math.round(w * 0.0667);
+  const face = faceFor(credit.text, brand, 'mono', 2.2);
+  return `
+  <text x="${w - M}" y="${h - 38}" font-family="${face.family}" font-weight="${face.weight}"
+        font-size="17"${face.tracking ? ` letter-spacing="${face.tracking}"` : ''}
+        fill="${brand.muted}" opacity=".62" text-anchor="end">${esc(credit.text)}</text>`;
+}
+
 // ---------------------------------------------------------------- frame
 
 /**
@@ -190,7 +211,7 @@ function imageLayer(frame, brand) {
  *   document already has the faces); data URIs for export, where the rasterised
  *   SVG cannot fetch anything.
  */
-export function renderFrame(frame, brand, deckLayout = 'statement', fontCss = '') {
+export function renderFrame(frame, brand, deckLayout = 'statement', fontCss = '', mark = null) {
   const key = LAYOUTS[frame?.layout] ? frame.layout
             : LAYOUTS[deckLayout] ? deckLayout : 'statement';
   const L = LAYOUTS[key];
@@ -234,5 +255,6 @@ export function renderFrame(frame, brand, deckLayout = 'statement', fontCss = ''
   ${numeral}
   ${textEl({ rows, frame, M, top, lh, face: scaled, size, fill, align: L.align })}
   ${footer(frame, brand, M, L.chrome, L.align)}
+  ${credit(frame, brand, mark)}
 </svg>`;
 }

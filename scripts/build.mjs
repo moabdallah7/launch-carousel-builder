@@ -55,8 +55,9 @@ function minifyHtml(html) {
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(join(dist, 'src'), { recursive: true });
 
-writeFileSync(join(dist, 'index.html'),
-              minifyHtml(readFileSync(join(root, 'index.html'), 'utf8')));
+for (const page of ['index.html', 'privacy.html']) {
+  writeFileSync(join(dist, page), minifyHtml(readFileSync(join(root, page), 'utf8')));
+}
 
 for (const f of readdirSync(join(root, 'src'))) {
   if (extname(f) !== '.js') continue;

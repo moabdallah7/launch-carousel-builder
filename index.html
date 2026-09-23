@@ -110,12 +110,20 @@
       </div>
     </fieldset>
 
+    <label style="display:flex;gap:8px;align-items:flex-start;text-transform:none;
+                  letter-spacing:0;font-size:11px;color:#8a8a8a;margin-top:16px">
+      <input type="checkbox" id="mark" checked style="width:auto;margin:2px 0 0">
+      <span>Add a small “made with” credit to exported frames</span>
+    </label>
+
     <button class="go" id="exportAll">Export deck · ZIP @2×</button>
     <button class="ghost" id="exportOne">Export this frame @2×</button>
     <button class="ghost" id="reset">Start over</button>
     <p class="status" id="status"></p>
     <p class="hint">Everything stays in your browser. Nothing is uploaded,
-      and your work is saved here automatically.</p>
+      and your work is saved here automatically.
+      <a href="./privacy.html" style="color:#7c7c7c">Privacy</a></p>
+    <p class="hint" id="studioLine"></p>
   </div>
 
   <div class="stage"><div id="frame"></div></div>
@@ -136,7 +144,12 @@ import { importImage, DEFAULT_IMAGE } from './src/images.js';
 import { imageQuota, canAddImageTo, limitsFor, TIER } from './src/limits.js';
 
 // Set `url` once the studio site is live; until then the CTA falls back to email.
-const STUDIO = { name: 'MUDOLOOO STUDIOS', url: '', email: 'hey@mudolo.studio' };
+const STUDIO = {
+  name: 'MUDOLOOO STUDIOS',
+  url: '',                                  // set once the site is live
+  email: 'hey@mudolo.studio',
+  credit: 'MADE WITH MUDOLOOO.STUDIO',      // appears on exported frames
+};
 
 const $ = (id) => document.getElementById(id);
 const status = (t) => { $('status').textContent = t; };
@@ -176,6 +189,8 @@ function report(err, label) {
             + 'the last good version is on screen.');
 }
 installErrorHandlers(report);
+
+const markFor = () => ({ enabled: $('mark').checked, text: STUDIO.credit });
 
 const persist = debounce(() => {
   // A deck that fails validation must never reach storage, or the next visit
@@ -217,7 +232,7 @@ function render() {
 
 function draw() {
   const f = deck.frames[active];
-  $('frame').innerHTML = renderFrame(f, deck.brand, deck.layout);
+  $('frame').innerHTML = renderFrame(f, deck.brand, deck.layout, '', markFor());
   $('deckName').textContent = `${deck.frames.length} frames · ${SIZES[deck.size].label}`;
   $('fnum').textContent = `${active + 1} / ${deck.frames.length}`;
   $('strip').innerHTML = '';
@@ -380,7 +395,8 @@ $('reset').onclick = async () => {
 $('exportOne').onclick = async () => {
   const f = deck.frames[active];
   const css = await exportFontCss();
-  save2(await toPngBlob(renderFrame(f, deck.brand, deck.layout, css), f.w, f.h, 2), `${f.id}@2x.png`);
+  save2(await toPngBlob(renderFrame(f, deck.brand, deck.layout, css, markFor()), f.w, f.h, 2),
+        `${f.id}@2x.png`);
 };
 
 $('exportAll').onclick = async () => {
@@ -397,10 +413,12 @@ $('exportAll').onclick = async () => {
 async function buildDeckZip(scale = 2, onProgress = () => {}) {
   const files = [];
   const css = await exportFontCss();      // built once, cached, reused per frame
+  const mark = markFor();
   for (let i = 0; i < deck.frames.length; i++) {
     const f = deck.frames[i];
     onProgress(i + 1, deck.frames.length);
-    const blob = await toPngBlob(renderFrame(f, deck.brand, deck.layout, css), f.w, f.h, scale);
+    const blob = await toPngBlob(renderFrame(f, deck.brand, deck.layout, css, mark),
+                                 f.w, f.h, scale);
     files.push({ name: `${f.id}@${scale}x.png`, data: new Uint8Array(await blob.arrayBuffer()) });
   }
   return makeZip(files);
@@ -435,6 +453,12 @@ async function offerBackup(raw, err) {
     el.querySelector('#rc-new').onclick = () => { el.remove(); clear(); resolve(); };
   });
 }
+
+$('studioLine').innerHTML = STUDIO.url || STUDIO.email
+  ? `A free tool by <a href="${STUDIO.url || 'mailto:' + STUDIO.email}"
+       style="color:#B6FF00">${STUDIO.name}</a>`
+  : '';
+$('mark').addEventListener('change', () => render());
 
 await requireDesktop({ minWidth: 820, studio: STUDIO });
 await ensureFonts();

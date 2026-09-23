@@ -41,6 +41,9 @@ These are decisions already paid for. Changing one is a rewrite, not a tweak.
   direction-aware anchoring, tracking zeroed to preserve letter joining
 - **Onboarding** (A1): two questions on first run, seeded deck, skippable,
   never shown again once a deck is saved
+- **Attribution** (B2): a "made with" credit on exported frames, on by default
+  and switchable off, plus a studio link in the panel — the lead-gen mechanism
+- **Privacy page** (B3): short, specific and true; no third-party requests
 - **Safari verified**: `ctx.letterSpacing` supported, no text overflow, export
   works. The no-`letterSpacing` fallback was also proven safe by measurement —
   it over-estimates width by 0–9px across every line, never under-estimates, so
@@ -96,8 +99,6 @@ traffic *and* single-frame export lands.
 | # | Item | Why |
 |---|---|---|
 | B1 | **Hosting** | Static files, any host. Keep the zero-third-party property. |
-| B2 | **"Made with" CTA** | The lead-gen mechanism. Optional watermark, link back to the studio. |
-| B3 | **Privacy page** | Short and true: nothing collected. Mirrors the studio site's. |
 | B5 | **Firefox pass** | Chromium and Safari verified. Firefox untested; it is the likely home of the no-`letterSpacing` path. |
 
 ## Phase C — editor
@@ -121,6 +122,12 @@ Deferred on purpose. Each one brings back the server we avoided.
 - One design → every ad placement (the "42 placements, 1 system" feature)
 
 ### Paid tier
+
+The watermark is a better candidate for metering than images: it is the thing a
+user most wants removed, and switching it off is a single visible benefit. It is
+free during beta and the toggle is honest about that. Note the same caveat as
+everything else client-side — someone can turn it off in devtools regardless.
+
 
 `src/limits.js` holds the ceilings; the tier is one constant in `index.html`.
 Free is 3 images and 10 frames, Pro lifts both. There is **no payment flow and
