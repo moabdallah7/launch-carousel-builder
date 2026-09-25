@@ -144,11 +144,15 @@ import { importImage, DEFAULT_IMAGE } from './src/images.js';
 import { imageQuota, canAddImageTo, limitsFor, TIER } from './src/limits.js';
 
 // Set `url` once the studio site is live; until then the CTA falls back to email.
+// mudolo.studio is not registered yet, so nothing here may point at it:
+// a dead link on a live tool is worse than no link, and the credit would
+// advertise a domain that does not resolve.
+// When the domain is live: set url, set email, and restore the domain in credit.
 const STUDIO = {
   name: 'MUDOLOOO STUDIOS',
-  url: '',                                  // set once the site is live
-  email: 'hey@mudolo.studio',
-  credit: 'MADE WITH MUDOLOOO.STUDIO',      // appears on exported frames
+  url: '',                                // studio site - not hosted yet
+  email: '',                              // hey@mudolo.studio - domain not registered
+  credit: 'MADE WITH MUDOLOOO STUDIOS',   // no domain until one resolves
 };
 
 const $ = (id) => document.getElementById(id);
