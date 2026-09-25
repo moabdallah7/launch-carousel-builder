@@ -106,6 +106,10 @@
         <button class="ghost" id="addFrame">+ Frame</button>
         <button class="ghost" id="delFrame">− Frame</button>
       </div>
+      <div class="row">
+        <button class="ghost" id="undo" title="⌘Z">↶ Undo</button>
+        <button class="ghost" id="redo" title="⇧⌘Z">↷ Redo</button>
+      </div>
 
       <label>Image <span id="quota" style="color:#5a5a5a;text-transform:none;letter-spacing:0"></span></label>
       <input type="file" id="imgFile" accept="image/*" hidden>
@@ -150,6 +154,7 @@ import { makeZip } from './src/zip.js';
 import { save, load, clear, debounce, validate } from './src/store.js';
 import { runOnboarding, OB_CSS } from './src/onboarding.js';
 import { requireDesktop } from './src/desktop-gate.js';
+import { createHistory } from './src/history.js';
 import { installErrorHandlers, createErrorBar, downloadBackup, ERR_CSS } from './src/errors.js';
 import { importImage, DEFAULT_IMAGE } from './src/images.js';
 import { imageQuota, canAddImageTo, limitsFor, TIER } from './src/limits.js';
@@ -195,6 +200,7 @@ const obStyle = document.createElement('style');
 obStyle.textContent = OB_CSS;
 document.head.appendChild(obStyle);
 
+let history = null;                 // created after the deck is settled
 const errBar = createErrorBar($('panel'));
 let lastGood = null;            // JSON of the last deck that rendered cleanly
 
@@ -230,6 +236,8 @@ function render() {
     draw();
     lastGood = JSON.stringify(deck);
     errBar.hide();
+    if (history && !restoring) history.push(deck);
+    syncHistoryUI();
     persist();
   } catch (err) {
     report(err, 'render');
@@ -243,6 +251,27 @@ function render() {
       report(fatal, 'recovery');
     }
   }
+}
+
+let restoring = false;              // suppress recording while replaying a state
+
+function syncHistoryUI() {
+  if (!history) return;
+  $('undo').disabled = !history.canUndo();
+  $('redo').disabled = !history.canRedo();
+}
+
+/** Replay a state without recording it, or undo would never move. */
+function apply(state) {
+  if (!state) return;
+  restoring = true;
+  deck = state;
+  active = Math.min(active, deck.frames.length - 1);
+  syncFields();
+  render();
+  restoring = false;
+  history.sync(deck);
+  syncHistoryUI();
 }
 
 function draw() {
@@ -457,6 +486,17 @@ $('scrim').oninput = () => {
   render(); syncImageUI();
 };
 
+$('undo').onclick = () => { const st = history.undo(); apply(st); if (st) status('Undone.'); };
+$('redo').onclick = () => { const st = history.redo(); apply(st); if (st) status('Redone.'); };
+addEventListener('keydown', (e) => {
+  if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
+  // let the browser handle undo inside a field the user is typing in
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+  e.preventDefault();
+  apply(e.shiftKey ? history.redo() : history.undo());
+});
+
 $('addFrame').onclick = () => { addFrame(deck, active); active++; syncFields(); render(); };
 $('delFrame').onclick = () => {
   removeFrame(deck, active);
@@ -548,6 +588,7 @@ if (corruptRaw) await offerBackup(corruptRaw);
 // First run only: a returning user with a saved deck goes straight to work.
 if (!deck) deck = deckFrom(await runOnboarding());
 await ensureFontsFor(deck);   // serif / arabic, only if this deck uses them
+history = createHistory(deck);
 try {
   syncFields();
   render();

@@ -41,6 +41,9 @@ These are decisions already paid for. Changing one is a rewrite, not a tweak.
   direction-aware anchoring, tracking zeroed to preserve letter joining
 - **Onboarding** (A1): two questions on first run, seeded deck, skippable,
   never shown again once a deck is saved
+- **Logo upload** (A2), **fit warnings** (A4) and **undo/redo** (A6) — undo uses
+  whole-deck snapshots capped by bytes rather than count, and coalesces rapid
+  typing so one undo removes a phrase, not a character
 - **Attribution** (B2): a "made with" credit on exported frames, on by default
   and switchable off, plus a studio link in the panel — the lead-gen mechanism
 - **Privacy page** (B3): short, specific and true; no third-party requests
@@ -71,13 +74,8 @@ These are decisions already paid for. Changing one is a rewrite, not a tweak.
 
 ## Phase A — usable beta
 
-Goal: a stranger gets a good carousel without being taught.
+Complete. A stranger can get a good carousel without being taught.
 
-| # | Item | Why |
-|---|---|---|
-| A2 | **Logo upload** | Brand is colours and text only. Client-side file read to a data URI — no upload. |
-| A4 | **Character-count feedback** | Warn before truncation, don't just show `…` after the fact. |
-| A6 | **Undo/redo** | Command log. Cheap now, a rewrite later. |
 
 ### Why there is no phone UI
 
