@@ -1,8 +1,8 @@
 {
-  "name": "launch-carousel-builder",
+  "name": "mudesign",
   "version": "0.1.0",
   "private": true,
-  "description": "Browser-based carousel builder. No server, no accounts, no uploads.",
+  "description": "MUDESIGN — browser-based launch carousel builder. No server, no accounts, no uploads.",
   "type": "module",
   "license": "UNLICENSED",
   "scripts": {

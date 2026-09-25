@@ -1,4 +1,6 @@
-# Launch Carousel Builder
+# MUDESIGN
+
+The launch carousel builder by MUDOLOOO Studios.
 
 Browser-based carousel maker. No server, no accounts, no uploads — a user's
 words and images never leave their browser.
