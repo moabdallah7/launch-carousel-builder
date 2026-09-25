@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launch Carousel Builder — beta</title>
+<style>*{box-sizing:border-box}html,body{margin:0;height:100%;background:#0b0b0b;color:#EDEDED;font:14px/1.5 ui-sans-serif,system-ui,-apple-system,sans-serif}.wrap{display:grid;grid-template-columns:312px minmax(0,1fr) 128px;height:100vh}.panel{border-right:1px solid #1d1d1d;padding:18px;overflow:auto;background:#0f0f0f}.stage{display:grid;place-items:center;padding:24px;overflow:auto;background:#141414}.strip{border-left:1px solid #1d1d1d;padding:10px;overflow:auto;background:#0f0f0f;display:flex;flex-direction:column;gap:7px}h1{font-size:13px;letter-spacing:.14em;text-transform:uppercase;margin:0}.beta{font-size:9px;letter-spacing:.14em;background:#B6FF00;color:#000;padding:2px 5px;border-radius:2px;margin-left:6px;vertical-align:2px}.sub{font-size:11px;color:#5a5a5a;margin:4px 0 16px}fieldset{border:0;border-top:1px solid #1d1d1d;margin:16px 0 0;padding:14px 0 0}legend{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6a6a6a;padding:0}label{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#7c7c7c;margin:11px 0 4px}input,textarea,select{width:100%;background:#000;border:1px solid #262626;color:#EDEDED;padding:7px 9px;font:12px/1.4 ui-monospace,monospace;border-radius:2px}textarea{resize:vertical;min-height:58px}input[type=color]{padding:2px;height:32px;cursor:pointer}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.chip{font-size:10px;letter-spacing:.08em;padding:5px 8px;border:1px solid #2a2a2a;background:#000;color:#bdbdbd;cursor:pointer;border-radius:2px}.chip[aria-pressed="true"]{border-color:#B6FF00;color:#B6FF00}button.go{width:100%;background:#B6FF00;color:#000;border:0;padding:10px;font-weight:700;letter-spacing:.08em;cursor:pointer;border-radius:2px;margin-top:14px;font-size:12px}button.ghost{width:100%;background:transparent;color:#EDEDED;border:1px solid #2a2a2a;padding:9px;margin-top:7px;cursor:pointer;border-radius:2px;font-size:12px}button:disabled{opacity:.5;cursor:default}#frame svg{display:block;width:min(62vh,100%);height:auto;box-shadow:0 18px 50px rgba(0,0,0,.55)}.thumb{border:1px solid #262626;background:#000;cursor:pointer;padding:0;line-height:0;position:relative;border-radius:2px;overflow:hidden}.thumb[aria-current="true"]{border-color:#B6FF00}.thumb svg{width:100%;height:auto;display:block;pointer-events:none}.thumb i{position:absolute;left:3px;top:3px;font:9px ui-monospace,monospace;font-style:normal;background:#000;color:#8a8a8a;padding:1px 3px}.status{margin-top:10px;font-size:11px;color:#6a6a6a;min-height:16px}.hint{font-size:10px;color:#5a5a5a;margin-top:8px;line-height:1.45}.errbar{display:flex;gap:10px;align-items:flex-start;background:#2a1414;border:1px solid #5c2020;color:#ffb4b4;padding:10px 12px;border-radius:3px;font-size:12px;line-height:1.45;margin-bottom:14px}.errbar-msg{flex:1}.errbar-x{background:none;border:0;color:#ffb4b4;cursor:pointer;font-size:12px;padding:0;line-height:1.45}</style>
+</head>
+<body>
+<div class="wrap">
+<div class="panel" id="panel">
+<h1>Launch Carousel<span class="beta">BETA</span></h1>
+<p class="sub" id="deckName"></p>
+<fieldset>
+<legend>Your brand</legend>
+<label>Name shown on every frame</label>
+<input id="bname" maxlength="40">
+<label>Hashtag</label>
+<input id="btag" maxlength="30">
+<div class="chips" id="presets"></div>
+<div class="row">
+<div><label>Background</label><input type="color" id="cbg"></div>
+<div><label>Text</label><input type="color" id="cink"></div>
+</div>
+<div class="row">
+<div><label>Accent</label><input type="color" id="cacc"></div>
+<div><label>Mark</label><input type="color" id="cmark"></div>
+</div>
+</fieldset>
+<fieldset>
+<legend>Layout <span style="color:#5a5a5a;text-transform:none;letter-spacing:0">· this frame</span></legend>
+<div class="chips" id="layouts"></div>
+<div class="row" style="margin-top:9px">
+<button class="ghost" id="applyAll" style="margin-top:0">Apply to all</button>
+<button class="ghost" id="reshuffle" style="margin-top:0">Vary again</button>
+</div>
+<label>Size</label>
+<select id="size"></select>
+</fieldset>
+<fieldset>
+<legend>Frame <span id="fnum"></span></legend>
+<label>Headline</label><textarea id="headline" maxlength="120"></textarea>
+<label>Body</label><textarea id="body" maxlength="240"></textarea>
+<div class="row">
+<button class="ghost" id="addFrame">+ Frame</button>
+<button class="ghost" id="delFrame">− Frame</button>
+</div>
+<label>Image <span id="quota" style="color:#5a5a5a;text-transform:none;letter-spacing:0"></span></label>
+<input type="file" id="imgFile" accept="image/*" hidden>
+<button class="ghost" id="imgPick" style="margin-top:0">Add an image</button>
+<div id="imgTools" hidden>
+<div class="chips" style="margin-top:8px">
+<button class="chip" id="fitCover">Cover</button>
+<button class="chip" id="fitContain">Fit</button>
+<button class="chip" id="imgRemove">Remove</button>
+</div>
+<label>Darken behind text <span id="scrimVal" style="color:#5a5a5a"></span></label>
+<input type="range" id="scrim" min="0" max="85" step="5" style="padding:0">
+</div>
+</fieldset>
+<label style="display:flex;gap:8px;align-items:flex-start;text-transform:none;
+letter-spacing:0;font-size:11px;color:#8a8a8a;margin-top:16px">
+<input type="checkbox" id="mark" checked style="width:auto;margin:2px 0 0">
+<span>Add a small “made with” credit to exported frames</span>
+</label>
+<button class="go" id="exportAll">Export deck · ZIP @2×</button>
+<button class="ghost" id="exportOne">Export this frame @2×</button>
+<button class="ghost" id="reset">Start over</button>
+<p class="status" id="status"></p>
+<p class="hint">Everything stays in your browser. Nothing is uploaded,
+and your work is saved here automatically.
+<a href="./privacy.html" style="color:#7c7c7c">Privacy</a></p>
+<p class="hint" id="studioLine"></p>
+</div>
+<div class="stage"><div id="frame"></div></div>
+<div class="strip" id="strip"></div>
+</div>
+<script type="module">import { DEFAULT_BRAND, PRESETS, applyPreset } from './src/brand.js';
+import { makeDeck, resizeDeck, addFrame, removeFrame, SIZES } from './src/deck.js';
+import { renderFrame, ensureFonts, ensureFontsFor, exportFontCss, loadGroup, LAYOUTS, rhythmFor } from './src/render.js';
+import { toPngBlob } from './src/export.js';
+import { makeZip } from './src/zip.js';
+import { save, load, clear, debounce, validate } from './src/store.js';
+import { runOnboarding, OB_CSS } from './src/onboarding.js';
+import { requireDesktop } from './src/desktop-gate.js';
+import { installErrorHandlers, createErrorBar, downloadBackup, ERR_CSS } from './src/errors.js';
+import { importImage, DEFAULT_IMAGE } from './src/images.js';
+import { imageQuota, canAddImageTo, limitsFor, TIER } from './src/limits.js';
+const STUDIO = {
+name: 'MUDOLOOO STUDIOS',
+url: '',                                  // set once the site is live
+email: 'hey@mudolo.studio',
+credit: 'MADE WITH MUDOLOOO.STUDIO',      // appears on exported frames
+};
+const $ = (id) => document.getElementById(id);
+const status = (t) => { $('status').textContent = t; };
+const stored = load();
+const corruptRaw = stored && stored.corrupt ? stored.raw : null;
+let deck = corruptRaw ? null : stored;
+let active = 0;
+function deckFrom(answers) {
+const brand = structuredClone(DEFAULT_BRAND);
+if (answers) {
+if (answers.brandName) brand.name = answers.brandName.toUpperCase();
+if (answers.preset) Object.assign(brand, (({ label, ...c }) => c)(PRESETS[answers.preset] || {}));
+if (answers.brandName) {
+const slug = answers.brandName.replace(/[^\p{L}\p{N}]+/gu, '').toUpperCase();
+if (slug) brand.tag = `#${slug}`;
+}
+}
+return makeDeck(brand, 'carousel', 10, answers);
+}
+const obStyle = document.createElement('style');
+obStyle.textContent = OB_CSS;
+document.head.appendChild(obStyle);
+const errBar = createErrorBar($('panel'));
+let lastGood = null;            // JSON of the last deck that rendered cleanly
+function report(err, label) {
+console.error(`[${label}]`, err);
+errBar.show(`Something went wrong (${label}). Your work is saved — `
++ 'the last good version is on screen.');
+}
+installErrorHandlers(report);
+const markFor = () => ({ enabled: $('mark').checked, text: STUDIO.credit });
+const persist = debounce(() => {
+if (!validate(deck)) { report(new Error('deck failed validation'), 'autosave'); return; }
+if (save(deck)) return;
+const n = imageQuota(deck, TIER.free).used;
+status(n
+? `Autosave failed — browser storage is full. Removing an image (${n} in this deck) should free space.`
+: 'Autosave unavailable in this browser. Your work is still exportable.');
+});
+function render() {
+try {
+draw();
+lastGood = JSON.stringify(deck);
+errBar.hide();
+persist();
+} catch (err) {
+report(err, 'render');
+if (!lastGood) throw err;                 // nothing safe to fall back to
+try {
+deck = JSON.parse(lastGood);
+active = Math.min(active, deck.frames.length - 1);
+draw();
+syncFields();
+} catch (fatal) {
+report(fatal, 'recovery');
+}
+}
+}
+function draw() {
+const f = deck.frames[active];
+$('frame').innerHTML = renderFrame(f, deck.brand, deck.layout, '', markFor());
+$('deckName').textContent = `${deck.frames.length} frames · ${SIZES[deck.size].label}`;
+$('fnum').textContent = `${active + 1} / ${deck.frames.length}`;
+$('strip').innerHTML = '';
+deck.frames.forEach((fr, i) => {
+const b = document.createElement('button');
+b.className = 'thumb';
+b.setAttribute('aria-current', String(i === active));
+b.innerHTML = renderFrame(fr, deck.brand, deck.layout)
++ `<i>${String(i + 1).padStart(2, '0')}</i>`;
+b.onclick = () => { active = i; syncFields(); render(); };
+$('strip').appendChild(b);
+});
+const activeLayout = deck.frames[active].layout || deck.layout;
+document.querySelectorAll('#layouts .chip')
+.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.k === activeLayout)));
+syncImageUI();          // quota/controls must track the deck, not just image edits
+}
+function syncFields() {
+const f = deck.frames[active];
+$('headline').value = f.slots.headline;
+$('body').value = f.slots.body;
+$('bname').value = deck.brand.name;
+$('btag').value = deck.brand.tag;
+$('cbg').value = deck.brand.bg;
+$('cink').value = deck.brand.ink;
+$('cacc').value = deck.brand.accent;
+$('cmark').value = deck.brand.mark;
+$('size').value = deck.size;
+}
+const RTL_TEST = /[\u0590-\u05FF\u0600-\u06FF\u0700-\u074F\u0780-\u07BF\u08A0-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
+for (const [id, key] of [['headline', 'headline'], ['body', 'body']]) {
+$(id).addEventListener('input', async () => {
+const v = $(id).value;
+deck.frames[active].slots[key] = v;
+if (RTL_TEST.test(v)) await loadGroup('arabic');
+render();
+});
+}
+for (const [id, key] of [['bname', 'name'], ['btag', 'tag'], ['cbg', 'bg'],
+['cink', 'ink'], ['cacc', 'accent'], ['cmark', 'mark']]) {
+$(id).addEventListener('input', () => { deck.brand[key] = $(id).value; render(); });
+}
+$('presets').innerHTML = Object.entries(PRESETS)
+.map(([k, p]) => `<button class="chip" data-k="${k}">${p.label}</button>`).join('');
+$('presets').onclick = (e) => {
+const k = e.target.dataset?.k; if (!k) return;
+deck.brand = applyPreset(deck.brand, k); syncFields(); render();
+};
+$('layouts').innerHTML = Object.entries(LAYOUTS)
+.map(([k, L]) => `<button class="chip" data-k="${k}">${L.label}</button>`).join('');
+$('layouts').onclick = async (e) => {
+const btn = e.target.closest('.chip'); if (!btn) return;
+deck.frames[active].layout = btn.dataset.k;
+if (btn.dataset.k === 'editorial') await loadGroup('serif');
+render();
+};
+$('applyAll').onclick = () => {
+const k = deck.frames[active].layout;
+deck.frames.forEach((f) => { f.layout = k; });
+render(); status('Applied that layout to every frame.');
+};
+$('reshuffle').onclick = () => {
+deck.frames.forEach((f, i) => { f.layout = rhythmFor(i); });
+render(); status('Rhythm restored — loud, quiet, loud.');
+};
+$('size').innerHTML = Object.entries(SIZES)
+.map(([k, s]) => `<option value="${k}">${s.label}</option>`).join('');
+$('size').addEventListener('change', () => { resizeDeck(deck, $('size').value); render(); });
+const tier = TIER.free;   // one line to flip when the paid version exists
+function syncImageUI() {
+const f = deck.frames[active];
+const q = imageQuota(deck, tier);
+const has = !!f.image?.src;
+$('imgTools').hidden = !has;
+$('imgPick').textContent = has ? 'Replace image' : 'Add an image';
+$('imgPick').disabled = !canAddImageTo(deck, f, tier);
+$('quota').textContent = q.max === Infinity ? `· ${q.used} used`
+: q.used > q.max ? `· ${q.used} images · limit ${q.max}`
+: `· ${q.used} of ${q.max} used`;
+if (has) {
+const pct = Math.round((f.image.scrim ?? 0) * 100);
+$('scrim').value = pct;
+$('scrimVal').textContent = `${pct}%`;
+$('fitCover').setAttribute('aria-pressed', String(f.image.fit !== 'contain'));
+$('fitContain').setAttribute('aria-pressed', String(f.image.fit === 'contain'));
+}
+}
+$('imgPick').onclick = () => {
+const f = deck.frames[active];
+if (!canAddImageTo(deck, f, tier)) {
+const q = imageQuota(deck, tier);
+status(`${limitsFor(tier).label} decks include ${q.max} images. `
++ 'Remove one, or upgrade for unlimited.');
+return;
+}
+$('imgFile').click();
+};
+$('imgFile').onchange = async (e) => {
+const file = e.target.files?.[0];
+e.target.value = '';                       // so choosing the same file again re-fires
+if (!file) return;
+status('Processing image…');
+try {
+const img = await importImage(file);
+deck.frames[active].image = { ...DEFAULT_IMAGE, ...img };
+render();
+syncImageUI();
+status(`Image added · ${img.w}×${img.h} · ${(img.bytes / 1024).toFixed(0)} KB`);
+} catch (err) {
+status(err.message);
+}
+};
+$('imgRemove').onclick = () => {
+delete deck.frames[active].image;
+render(); syncImageUI(); status('Image removed.');
+};
+$('fitCover').onclick = () => {
+deck.frames[active].image.fit = 'cover'; render(); syncImageUI();
+};
+$('fitContain').onclick = () => {
+deck.frames[active].image.fit = 'contain'; render(); syncImageUI();
+};
+$('scrim').oninput = () => {
+deck.frames[active].image.scrim = +$('scrim').value / 100;
+render(); syncImageUI();
+};
+$('addFrame').onclick = () => { addFrame(deck, active); active++; syncFields(); render(); };
+$('delFrame').onclick = () => {
+removeFrame(deck, active);
+active = Math.min(active, deck.frames.length - 1);
+syncFields(); render();
+};
+$('reset').onclick = async () => {
+if (!confirm('Discard this deck and start over?')) return;
+clear();
+deck = deckFrom(await runOnboarding());
+await ensureFontsFor(deck);
+active = 0; syncFields(); render(); status('Started a new deck.');
+};
+$('exportOne').onclick = async () => {
+const f = deck.frames[active];
+const css = await exportFontCss();
+save2(await toPngBlob(renderFrame(f, deck.brand, deck.layout, css, markFor()), f.w, f.h, 2),
+`${f.id}@2x.png`);
+};
+$('exportAll').onclick = async () => {
+$('exportAll').disabled = true;
+try {
+const blob = await buildDeckZip(2, (i, n) => status(`Rendering ${i}/${n}…`));
+save2(blob, `${deck.id}.zip`);
+status(`Exported ${deck.frames.length} frames · ${(blob.size / 1048576).toFixed(1)} MB`);
+} catch (e) {
+status(`Export failed: ${e.message}`);
+} finally { $('exportAll').disabled = false; }
+};
+async function buildDeckZip(scale = 2, onProgress = () => {}) {
+const files = [];
+const css = await exportFontCss();      // built once, cached, reused per frame
+const mark = markFor();
+for (let i = 0; i < deck.frames.length; i++) {
+const f = deck.frames[i];
+onProgress(i + 1, deck.frames.length);
+const blob = await toPngBlob(renderFrame(f, deck.brand, deck.layout, css, mark),
+f.w, f.h, scale);
+files.push({ name: `${f.id}@${scale}x.png`, data: new Uint8Array(await blob.arrayBuffer()) });
+}
+return makeZip(files);
+}
+function save2(blob, filename) {
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url; a.download = filename; a.click();
+setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+async function offerBackup(raw, err) {
+if (err) report(err, 'saved deck');
+await new Promise((resolve) => {
+const el = document.createElement('div');
+el.className = 'ob-back';
+el.innerHTML = `
+<div class="ob">
+<h2>We couldn't open<br>your saved deck.</h2>
+<p class="lede">Nothing has been deleted yet. Download a copy if you want
+to keep it, then start a fresh deck.</p>
+<button class="go" id="rc-new">Start a fresh deck</button>
+<button class="skip" id="rc-save">Download a backup first</button>
+</div>`;
+document.body.appendChild(el);
+el.querySelector('#rc-save').onclick = () => downloadBackup(raw, 'carousel-backup.json');
+el.querySelector('#rc-new').onclick = () => { el.remove(); clear(); resolve(); };
+});
+}
+$('studioLine').innerHTML = STUDIO.url || STUDIO.email
+? `A free tool by <a href="${STUDIO.url || 'mailto:' + STUDIO.email}"
+style="color:#B6FF00">${STUDIO.name}</a>`
+: '';
+$('mark').addEventListener('change', () => render());
+await requireDesktop({ minWidth: 820, studio: STUDIO });
+await ensureFonts();
+if (corruptRaw) await offerBackup(corruptRaw);
+if (!deck) deck = deckFrom(await runOnboarding());
+await ensureFontsFor(deck);   // serif / arabic, only if this deck uses them
+try {
+syncFields();
+render();
+} catch (err) {
+await offerBackup(JSON.stringify(deck), err);
+clear();
+deck = deckFrom(await runOnboarding());
+await ensureFontsFor(deck);
+active = 0; lastGood = null;
+syncFields(); render();
+}
+window.__studio = { get deck() { return deck; }, buildDeckZip, renderFrame };</script>
+</body>
+</html>

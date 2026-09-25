@@ -1,0 +1,51 @@
+export const FONT_DIR = './assets/fonts/';
+export const FACES = [
+{
+"family": "Archivo",
+"weight": "900",
+"style": "normal",
+"subset": "latin",
+"file": "archivo-900.woff2",
+"group": "core"
+},
+{
+"family": "Martian Mono",
+"weight": "600",
+"style": "normal",
+"subset": "latin",
+"file": "martianmono-600.woff2",
+"group": "core"
+},
+{
+"family": "IBM Plex Sans",
+"weight": "400",
+"style": "normal",
+"subset": "latin",
+"file": "ibmplexsans-400.woff2",
+"group": "core"
+},
+{
+"family": "IBM Plex Sans Arabic",
+"weight": "400",
+"style": "normal",
+"subset": "arabic",
+"file": "ibmplexsansarabic-400.woff2",
+"group": "arabic"
+},
+{
+"family": "IBM Plex Sans Arabic",
+"weight": "700",
+"style": "normal",
+"subset": "arabic",
+"file": "ibmplexsansarabic-700.woff2",
+"group": "arabic"
+},
+{
+"family": "Instrument Serif",
+"weight": "400",
+"style": "normal",
+"subset": "latin",
+"file": "instrumentserif-400.woff2",
+"group": "serif"
+}
+];
