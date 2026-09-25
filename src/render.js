@@ -117,6 +117,22 @@ function chrome(frame, brand, M, mode) {
   const nameFace = faceFor(brand.name, brand, 'mono', 4.4);
   const rtl = nameFace.rtl;
 
+  // A logo replaces the wordmark rather than sitting beside it: two marks
+  // competing in a 20px strip reads as clutter, not branding.
+  // Height is fixed and width follows the aspect ratio, so any logo shape works.
+  if (brand.logo?.src) {
+    const H = 34;
+    const ratio = (brand.logo.w && brand.logo.h) ? brand.logo.w / brand.logo.h : 3;
+    const LW = Math.round(H * ratio);
+    const lx = rtl ? w - M - LW : M;
+    const index = `<text x="${rtl ? M : w - M}" y="${M + 14}" font-family="${brand.mono}"
+        font-weight="600" font-size="20" letter-spacing="4.4" fill="${brand.muted}"${
+        rtl ? '' : ' text-anchor="end"'}>${esc(frame.slots.index)}</text>`;
+    return `
+  <image href="${esc(brand.logo.src)}" x="${lx}" y="${M - 12}" width="${LW}" height="${H}"
+         preserveAspectRatio="xMinYMid meet"/>${mode === 'minimal' ? '' : index}`;
+  }
+
   const index = `<text x="${rtl ? M : w - M}" y="${M + 14}" font-family="${brand.mono}"
         font-weight="600" font-size="20" letter-spacing="4.4" fill="${brand.muted}"${
         rtl ? '' : ' text-anchor="end"'}>${esc(frame.slots.index)}</text>`;

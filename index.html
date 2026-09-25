@@ -68,6 +68,12 @@
       <input id="bname" maxlength="40">
       <label>Hashtag</label>
       <input id="btag" maxlength="30">
+      <label>Logo <span id="logoState" style="color:#5a5a5a;text-transform:none;letter-spacing:0"></span></label>
+      <input type="file" id="logoFile" accept="image/*" hidden>
+      <div class="row">
+        <button class="ghost" id="logoPick" style="margin-top:0">Upload logo</button>
+        <button class="ghost" id="logoClear" style="margin-top:0">Use name</button>
+      </div>
       <div class="chips" id="presets"></div>
       <div class="row">
         <div><label>Background</label><input type="color" id="cbg"></div>
@@ -259,6 +265,10 @@ function draw() {
     .forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.k === activeLayout)));
   syncImageUI();          // quota/controls must track the deck, not just image edits
   syncFit();
+  const hasLogo = !!deck.brand.logo?.src;
+  $('logoState').textContent = hasLogo ? '· replaces the name' : '· using the name';
+  $('logoClear').disabled = !hasLogo;
+  $('bname').disabled = hasLogo;
 }
 
 /**
@@ -383,6 +393,27 @@ function syncImageUI() {
     $('fitContain').setAttribute('aria-pressed', String(f.image.fit === 'contain'));
   }
 }
+
+// ---- logo (replaces the wordmark on every frame)
+$('logoPick').onclick = () => $('logoFile').click();
+$('logoFile').onchange = async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = '';
+  if (!file) return;
+  status('Processing logo…');
+  try {
+    const img = await importImage(file);
+    deck.brand.logo = { src: img.src, w: img.w, h: img.h };
+    render();
+    status(`Logo added · ${img.w}×${img.h} · ${(img.bytes / 1024).toFixed(0)} KB`);
+  } catch (err) {
+    status(err.message);
+  }
+};
+$('logoClear').onclick = () => {
+  delete deck.brand.logo;
+  render(); status('Back to the name.');
+};
 
 $('imgPick').onclick = () => {
   const f = deck.frames[active];
