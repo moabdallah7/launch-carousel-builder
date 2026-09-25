@@ -45,6 +45,9 @@
     background:#000;color:#8a8a8a;padding:1px 3px}
   .status{margin-top:10px;font-size:11px;color:#6a6a6a;min-height:16px}
   .hint{font-size:10px;color:#5a5a5a;margin-top:8px;line-height:1.45}
+  .fit{margin:5px 0 0;font-size:10px;line-height:1.45;color:#5a5a5a}
+  .fit.warn{color:#E8B33A}
+  .fit.over{color:#FF6B6B}
   .errbar{display:flex;gap:10px;align-items:flex-start;background:#2a1414;
     border:1px solid #5c2020;color:#ffb4b4;padding:10px 12px;border-radius:3px;
     font-size:12px;line-height:1.45;margin-bottom:14px}
@@ -90,7 +93,9 @@
     <fieldset>
       <legend>Frame <span id="fnum"></span></legend>
       <label>Headline</label><textarea id="headline" maxlength="120"></textarea>
+      <p class="fit" id="fitHead"></p>
       <label>Body</label><textarea id="body" maxlength="240"></textarea>
+      <p class="fit" id="fitBody"></p>
       <div class="row">
         <button class="ghost" id="addFrame">+ Frame</button>
         <button class="ghost" id="delFrame">− Frame</button>
@@ -133,7 +138,7 @@
 <script type="module">
 import { DEFAULT_BRAND, PRESETS, applyPreset } from './src/brand.js';
 import { makeDeck, resizeDeck, addFrame, removeFrame, SIZES } from './src/deck.js';
-import { renderFrame, ensureFonts, ensureFontsFor, exportFontCss, loadGroup, LAYOUTS, rhythmFor } from './src/render.js';
+import { renderFrame, ensureFonts, ensureFontsFor, exportFontCss, loadGroup, LAYOUTS, rhythmFor, fitReport } from './src/render.js';
 import { toPngBlob } from './src/export.js';
 import { makeZip } from './src/zip.js';
 import { save, load, clear, debounce, validate } from './src/store.js';
@@ -253,6 +258,46 @@ function draw() {
   document.querySelectorAll('#layouts .chip')
     .forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.k === activeLayout)));
   syncImageUI();          // quota/controls must track the deck, not just image edits
+  syncFit();
+}
+
+/**
+ * Warn about what will happen, in words: "two lines will be cut" beats
+ * "212/240 characters", which tells the user nothing about the outcome.
+ */
+function syncFit() {
+  const f = deck.frames[active];
+  let r;
+  try { r = fitReport(f, deck.brand, deck.layout); } catch { return; }
+
+  const h = $('fitHead');
+  // Shrink-to-fit is the normal case, not a problem. Only flag it once the type
+  // has lost real presence - warning on every headline trains people to ignore it.
+  const shrinkRatio = r.headline.size / r.headline.maxSize;
+  if (r.headline.atFloor) {
+    h.textContent = 'Headline is as small as it goes — it may overflow the frame.';
+    h.className = 'fit over';
+  } else if (shrinkRatio < 0.7) {
+    h.textContent = `Headline is down to ${r.headline.size}px of ${r.headline.maxSize}px — `
+                  + 'losing impact. Try fewer words.';
+    h.className = 'fit warn';
+  } else {
+    h.textContent = `${r.headline.lines} line${r.headline.lines > 1 ? 's' : ''}, ${r.headline.size}px.`;
+    h.className = 'fit';
+  }
+
+  const b = $('fitBody');
+  if (r.body.truncated) {
+    b.textContent = `${r.body.overBy} line${r.body.overBy > 1 ? 's' : ''} will be cut: `
+                  + `"${r.body.hidden.slice(0, 44)}${r.body.hidden.length > 44 ? '…' : ''}"`;
+    b.className = 'fit over';
+  } else if (r.body.lines === r.body.maxLines) {
+    b.textContent = `${r.body.lines} of ${r.body.maxLines} lines — any more will be cut.`;
+    b.className = 'fit warn';
+  } else {
+    b.textContent = `${r.body.lines} of ${r.body.maxLines} lines.`;
+    b.className = 'fit';
+  }
 }
 
 function syncFields() {

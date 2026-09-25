@@ -161,6 +161,51 @@ function footer(frame, brand, M, mode, align) {
   <rect x="${M}" y="${h - 96}" width="${w - M * 2}" height="2" fill="${brand.muted}" opacity=".25"/>`;
 }
 
+// ---------------------------------------------------------------- fit report
+
+/**
+ * What will actually happen to this frame's copy when it renders.
+ * Derived from the same wrap/fit code the renderer uses, so a warning can never
+ * disagree with the output - a counter that guesses is worse than none.
+ */
+export function fitReport(frame, brand, deckLayout = 'statement') {
+  const key = LAYOUTS[frame?.layout] ? frame.layout
+            : LAYOUTS[deckLayout] ? deckLayout : 'statement';
+  const L = LAYOUTS[key];
+  const M = Math.round(frame.w * L.margin);
+  const maxW = frame.w - M * 2 - (L.band ? 48 : 0);
+
+  const text = L.casing === 'upper'
+    ? String(frame.slots.headline).toUpperCase() : frame.slots.headline;
+  const hFace = faceFor(text, brand, L.voice, L.tracking);
+  const hRows = wrap(text, maxW, { ...hFace, size: L.size });
+  let size = L.size;
+  while (size > L.min) {
+    const t = hFace.tracking * (size / L.size);
+    if (Math.max(...hRows.map(r => measureText(r, { ...hFace, size, tracking: t }))) <= maxW) break;
+    size -= 2;
+  }
+
+  const bFace = faceFor(frame.slots.body, brand, 'body');
+  const bRows = wrap(frame.slots.body, frame.w - M * 2, { ...bFace, size: 30 });
+
+  return {
+    headline: {
+      lines: hRows.length,
+      size, maxSize: L.size, minSize: L.min,
+      shrunk: size < L.size,
+      atFloor: size <= L.min,          // cannot shrink further: it will overflow
+    },
+    body: {
+      lines: bRows.length,
+      maxLines: MAX_BODY_ROWS,
+      truncated: bRows.length > MAX_BODY_ROWS,
+      overBy: Math.max(0, bRows.length - MAX_BODY_ROWS),
+      hidden: bRows.slice(MAX_BODY_ROWS).join(' '),
+    },
+  };
+}
+
 // ---------------------------------------------------------------- image
 
 /**
