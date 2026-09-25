@@ -79,6 +79,18 @@ if (mode === 'none') return '';
 const { w } = frame;
 const nameFace = faceFor(brand.name, brand, 'mono', 4.4);
 const rtl = nameFace.rtl;
+if (brand.logo?.src) {
+const H = 34;
+const ratio = (brand.logo.w && brand.logo.h) ? brand.logo.w / brand.logo.h : 3;
+const LW = Math.round(H * ratio);
+const lx = rtl ? w - M - LW : M;
+const index = `<text x="${rtl ? M : w - M}" y="${M + 14}" font-family="${brand.mono}"
+font-weight="600" font-size="20" letter-spacing="4.4" fill="${brand.muted}"${
+rtl ? '' : ' text-anchor="end"'}>${esc(frame.slots.index)}</text>`;
+return `
+<image href="${esc(brand.logo.src)}" x="${lx}" y="${M - 12}" width="${LW}" height="${H}"
+preserveAspectRatio="xMinYMid meet"/>${mode === 'minimal' ? '' : index}`;
+}
 const index = `<text x="${rtl ? M : w - M}" y="${M + 14}" font-family="${brand.mono}"
 font-weight="600" font-size="20" letter-spacing="4.4" fill="${brand.muted}"${
 rtl ? '' : ' text-anchor="end"'}>${esc(frame.slots.index)}</text>`;
@@ -113,6 +125,40 @@ font-family="${tagFace.family}" font-weight="${tagFace.weight}" font-size="26"${
 tagFace.tracking ? ` letter-spacing="${tagFace.tracking}"` : ''}
 fill="${contrastInk(brand.accent)}"${tagFace.rtl ? ' direction="rtl"' : ''}>${esc(brand.tag)}</text>
 <rect x="${M}" y="${h - 96}" width="${w - M * 2}" height="2" fill="${brand.muted}" opacity=".25"/>`;
+}
+export function fitReport(frame, brand, deckLayout = 'statement') {
+const key = LAYOUTS[frame?.layout] ? frame.layout
+: LAYOUTS[deckLayout] ? deckLayout : 'statement';
+const L = LAYOUTS[key];
+const M = Math.round(frame.w * L.margin);
+const maxW = frame.w - M * 2 - (L.band ? 48 : 0);
+const text = L.casing === 'upper'
+? String(frame.slots.headline).toUpperCase() : frame.slots.headline;
+const hFace = faceFor(text, brand, L.voice, L.tracking);
+const hRows = wrap(text, maxW, { ...hFace, size: L.size });
+let size = L.size;
+while (size > L.min) {
+const t = hFace.tracking * (size / L.size);
+if (Math.max(...hRows.map(r => measureText(r, { ...hFace, size, tracking: t }))) <= maxW) break;
+size -= 2;
+}
+const bFace = faceFor(frame.slots.body, brand, 'body');
+const bRows = wrap(frame.slots.body, frame.w - M * 2, { ...bFace, size: 30 });
+return {
+headline: {
+lines: hRows.length,
+size, maxSize: L.size, minSize: L.min,
+shrunk: size < L.size,
+atFloor: size <= L.min,          // cannot shrink further: it will overflow
+},
+body: {
+lines: bRows.length,
+maxLines: MAX_BODY_ROWS,
+truncated: bRows.length > MAX_BODY_ROWS,
+overBy: Math.max(0, bRows.length - MAX_BODY_ROWS),
+hidden: bRows.slice(MAX_BODY_ROWS).join(' '),
+},
+};
 }
 function imageLayer(frame, brand) {
 const img = frame.image;
