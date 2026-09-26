@@ -55,8 +55,12 @@ function minifyHtml(html) {
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(join(dist, 'src'), { recursive: true });
 
-for (const page of ['index.html', 'privacy.html']) {
+for (const page of ['index.html', 'privacy.html', '404.html']) {
   writeFileSync(join(dist, page), minifyHtml(readFileSync(join(root, page), 'utf8')));
+}
+// copied verbatim - minifying these would corrupt them
+for (const f of ['favicon.svg', 'robots.txt', 'sitemap.xml']) {
+  cpSync(join(root, f), join(dist, f));
 }
 
 for (const f of readdirSync(join(root, 'src'))) {

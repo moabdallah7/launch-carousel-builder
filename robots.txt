@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://moabdallah7.github.io/mudesign/sitemap.xml
